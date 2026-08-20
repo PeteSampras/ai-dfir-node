@@ -31,6 +31,11 @@ make packer-build PACKER_VARS="-var iso_url=/path/to/Rocky-9-x86_64-minimal.iso 
 any variable in `packer/variables.pkr.hcl` — e.g. `-var accelerator=tcg` on a
 host where `/dev/kvm` group membership needs a fresh login to take effect.
 
+Already have the muse glimmer GGUF downloaded? Set `model_local_path` in
+`ansible/group_vars/production.yml` (see `all.yml.example`) and Ansible
+copies it straight to the target VM instead of fetching it from Hugging
+Face on the target.
+
 ## Real deployment (ESXi + NVIDIA L4 + live ES/Arkime)
 
 See `docs/runbooks/esxi-import.md`, `docs/runbooks/gpu-passthrough.md`, and

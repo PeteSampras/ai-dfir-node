@@ -13,10 +13,17 @@
         path: "/opt/ainode/models/{{ model_file }}"
       register: model_stat
 
-    - name: Fetch the model (build/first-provision time only, not repeated)
+    - name: Copy the model from an already-downloaded local file (control node -> target, no re-download)
+      ansible.builtin.copy:
+        src: "{{ model_local_path }}"
+        dest: "/opt/ainode/models/{{ model_file }}"
+        mode: "0644"
+      when: not model_stat.stat.exists and model_local_path is defined and model_local_path | length > 0
+
+    - name: Fetch the model from Hugging Face (build/first-provision time only, needs target internet access)
       ansible.builtin.script: >
         {{ playbook_dir }}/../scripts/fetch-model.sh {{ model_repo }} {{ model_file }} /opt/ainode/models
-      when: not model_stat.stat.exists
+      when: not model_stat.stat.exists and (model_local_path is not defined or model_local_path | length == 0)
 
     - name: Pull llama.cpp CUDA server image
       containers.podman.podman_image:
