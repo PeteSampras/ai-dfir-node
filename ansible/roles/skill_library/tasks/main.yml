@@ -1,6 +1,8 @@
 ---
 - name: Render the skill library locally before deploying
-  ansible.builtin.command: python3 {{ playbook_dir }}/../skills/render.py
+  ansible.builtin.command: python3 render.py
+  args:
+    chdir: "{{ playbook_dir }}/../skills"
   delegate_to: localhost
   become: false
   changed_when: true
