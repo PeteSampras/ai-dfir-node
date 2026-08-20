@@ -16,7 +16,12 @@
       mcp-servers/attack-mcp/data/enterprise-attack.json is missing or empty.
       Run scripts/pin-attack-data.sh (needs internet) before deploying, or the
       attack-mcp container will build with no ATT&CK data.
-  when: not attack_data_stat.stat.exists or attack_data_stat.stat.size < 1000
+  # Threshold set below the committed test fixture's own size (890 bytes,
+  # tests/fixtures/mini-attack.json -- a deliberately minimal 2-technique
+  # bundle for unit tests) so a real test-mode deploy isn't rejected by its
+  # own guard. The real pinned dataset (scripts/pin-attack-data.sh) is tens
+  # of MB; this only needs to catch a genuinely empty/zero-byte file.
+  when: not attack_data_stat.stat.exists or attack_data_stat.stat.size < 500
 
 - name: Build attack-mcp image
   containers.podman.podman_image:
