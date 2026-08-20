@@ -1,0 +1,6 @@
+# Copy to production.ini (gitignored) and fill in the real node's address.
+[ainode_production]
+ainode.your-lab.example ansible_user=ainode ansible_ssh_private_key_file=~/.ssh/ai_dfir_node_production_ed25519
+
+[ainode_production:vars]
+ansible_python_interpreter=/usr/bin/python3
