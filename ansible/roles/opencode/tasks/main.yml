@@ -1,10 +1,14 @@
 ---
-- name: Install opencode (pinned version, build-time internet only)
+- name: Install opencode as the ainode user (latest by default, build-time internet only)
   ansible.builtin.shell: |
     set -euo pipefail
-    curl -fsSL https://opencode.ai/install | bash -s -- --version {{ opencode_version | default('0.4.2') }}
+    curl -fsSL https://opencode.ai/install | bash{{ ' -s -- --version ' + opencode_version if opencode_version | default('') | length > 0 else '' }}
   args:
-    creates: /usr/local/bin/opencode
+    creates: /home/ainode/.opencode/bin/opencode
+  become: true
+  become_user: ainode
+  environment:
+    HOME: /home/ainode
 
 - name: Create venv dirs for stdio-invoked MCP servers
   ansible.builtin.file:
