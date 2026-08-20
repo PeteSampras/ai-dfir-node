@@ -1,0 +1,43 @@
+---
+- name: Install opencode (pinned version, build-time internet only)
+  ansible.builtin.shell: |
+    set -euo pipefail
+    curl -fsSL https://opencode.ai/install | bash -s -- --version {{ opencode_version | default('0.4.2') }}
+  args:
+    creates: /usr/local/bin/opencode
+
+- name: Create venv dirs for stdio-invoked MCP servers
+  ansible.builtin.file:
+    path: "/opt/ainode/venvs/{{ item }}"
+    state: directory
+    mode: "0755"
+  loop: [attack-mcp, arkime-mcp]
+
+- name: Install attack-mcp into its own venv for opencode stdio use
+  ansible.builtin.pip:
+    name: "/opt/ainode/build/attack-mcp"
+    virtualenv: /opt/ainode/venvs/attack-mcp
+    virtualenv_command: python3 -m venv
+
+- name: Install arkime-mcp into its own venv (only when configured)
+  ansible.builtin.pip:
+    name: "/opt/ainode/build/arkime-mcp"
+    virtualenv: /opt/ainode/venvs/arkime-mcp
+    virtualenv_command: python3 -m venv
+  when: arkime_configured
+
+- name: Ensure opencode config dir exists for the ainode user
+  ansible.builtin.file:
+    path: /home/ainode/.config/opencode
+    state: directory
+    owner: ainode
+    group: ainode
+    mode: "0755"
+
+- name: Write opencode config
+  ansible.builtin.template:
+    src: opencode-config.json.j2
+    dest: /home/ainode/.config/opencode/opencode.json
+    owner: ainode
+    group: ainode
+    mode: "0644"

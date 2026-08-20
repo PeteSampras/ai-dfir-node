@@ -1,0 +1,63 @@
+---
+- name: Install nginx and openssl
+  ansible.builtin.dnf:
+    name: [nginx, openssl]
+    state: present
+
+- name: Ensure TLS directory exists
+  ansible.builtin.file:
+    path: /etc/ainode/tls
+    state: directory
+    mode: "0700"
+
+- name: Generate self-signed TLS cert (idempotent)
+  ansible.builtin.command: >
+    openssl req -x509 -nodes -days 825 -newkey rsa:4096
+    -keyout /etc/ainode/tls/ainode.key -out /etc/ainode/tls/ainode.crt
+    -subj "/CN=ainode.local"
+  args:
+    creates: /etc/ainode/tls/ainode.crt
+
+- name: Write mcpo config
+  ansible.builtin.template:
+    src: mcpo-config.json.j2
+    dest: /etc/ainode/mcpo-config.json
+    mode: "0644"
+  notify: Restart mcpo
+
+- name: Deploy mcpo quadlet
+  ansible.builtin.template:
+    src: mcpo.container.j2
+    dest: /etc/containers/systemd/mcpo.container
+    mode: "0644"
+  notify: Reload systemd and restart mcpo
+
+- name: Deploy Open WebUI volume quadlet
+  ansible.builtin.template:
+    src: open-webui-data.volume
+    dest: /etc/containers/systemd/open-webui-data.volume
+    mode: "0644"
+
+- name: Deploy Open WebUI quadlet
+  ansible.builtin.template:
+    src: open-webui.container.j2
+    dest: /etc/containers/systemd/open-webui.container
+    mode: "0644"
+  notify: Reload systemd and restart open-webui
+
+- name: Deploy nginx site config
+  ansible.builtin.template:
+    src: nginx.conf.j2
+    dest: /etc/nginx/conf.d/ainode.conf
+    mode: "0644"
+  notify: Restart nginx
+
+- name: Enable and start nginx
+  ansible.builtin.systemd:
+    name: nginx
+    enabled: true
+    state: started
+
+- name: Reload systemd so quadlet-generated services exist
+  ansible.builtin.systemd:
+    daemon_reload: true

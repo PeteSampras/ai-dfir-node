@@ -1,0 +1,40 @@
+---
+- name: Llama-server (GPU only)
+  when: gpu_available
+  block:
+    - name: Ensure model directory exists
+      ansible.builtin.file:
+        path: /opt/ainode/models
+        state: directory
+        mode: "0755"
+
+    - name: Check whether the model file is already present
+      ansible.builtin.stat:
+        path: "/opt/ainode/models/{{ model_file }}"
+      register: model_stat
+
+    - name: Fetch the model (build/first-provision time only, not repeated)
+      ansible.builtin.script: >
+        {{ playbook_dir }}/../scripts/fetch-model.sh {{ model_repo }} {{ model_file }} /opt/ainode/models
+      when: not model_stat.stat.exists
+
+    - name: Pull llama.cpp CUDA server image
+      containers.podman.podman_image:
+        name: ghcr.io/ggml-org/llama.cpp:server-cuda
+        pull: true
+
+    - name: Deploy llama-server quadlet
+      ansible.builtin.template:
+        src: llama-server.container.j2
+        dest: /etc/containers/systemd/llama-server.container
+        mode: "0644"
+      notify: Reload systemd and restart llama-server
+
+    - name: Reload systemd
+      ansible.builtin.systemd:
+        daemon_reload: true
+
+- name: Skip note when GPU not available
+  ansible.builtin.debug:
+    msg: "gpu_available=false — llama_server role skipped. Model serving cannot be verified on this box; see docs/runbooks/manual-validation.md."
+  when: not gpu_available

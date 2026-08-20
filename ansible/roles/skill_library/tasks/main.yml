@@ -1,0 +1,20 @@
+---
+- name: Render the skill library locally before deploying
+  ansible.builtin.command: python3 {{ playbook_dir }}/../skills/render.py
+  delegate_to: localhost
+  become: false
+  changed_when: true
+
+- name: Copy AGENTS.md into opencode's home for on-node loading
+  ansible.builtin.copy:
+    src: "{{ playbook_dir }}/../skills/rendered/AGENTS.md"
+    dest: /home/ainode/AGENTS.md
+    owner: ainode
+    group: ainode
+    mode: "0644"
+
+- name: Copy Open WebUI prompts export into the shared config location
+  ansible.builtin.copy:
+    src: "{{ playbook_dir }}/../skills/rendered/open-webui-prompts.json"
+    dest: /etc/ainode/open-webui-prompts.json
+    mode: "0644"

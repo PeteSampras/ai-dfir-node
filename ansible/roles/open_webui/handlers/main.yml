@@ -1,0 +1,22 @@
+---
+- name: Reload systemd and restart mcpo
+  ansible.builtin.systemd:
+    daemon_reload: true
+    name: mcpo.service
+    state: restarted
+
+- name: Restart mcpo
+  ansible.builtin.systemd:
+    name: mcpo.service
+    state: restarted
+
+- name: Reload systemd and restart open-webui
+  ansible.builtin.systemd:
+    daemon_reload: true
+    name: open-webui.service
+    state: restarted
+
+- name: Restart nginx
+  ansible.builtin.systemd:
+    name: nginx
+    state: restarted

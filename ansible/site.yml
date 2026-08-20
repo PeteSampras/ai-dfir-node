@@ -7,3 +7,9 @@
     - nvidia_gpu
     - podman_base
     - mcp_servers
+    - llama_server
+    - open_webui
+    - opencode
+    - skill_library
+    - audit_logging
+    - ops_scripts

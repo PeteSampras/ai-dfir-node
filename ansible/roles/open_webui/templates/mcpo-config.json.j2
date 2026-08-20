@@ -1,0 +1,11 @@
+{
+  "mcpServers": {
+    "attack": {"type": "sse", "url": "http://127.0.0.1:9001/sse"}
+{% if arkime_configured %}
+    ,"arkime": {"type": "sse", "url": "http://127.0.0.1:9002/sse"}
+{% endif %}
+{% if elasticsearch_configured %}
+    ,"elasticsearch": {"type": "sse", "url": "http://127.0.0.1:9003/sse"}
+{% endif %}
+  }
+}

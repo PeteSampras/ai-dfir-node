@@ -1,0 +1,7 @@
+---
+- name: Reload systemd and enable backup timer
+  ansible.builtin.systemd:
+    daemon_reload: true
+    name: ainode-backup.timer
+    enabled: true
+    state: started

@@ -1,0 +1,10 @@
+[Unit]
+Description=AI DFIR node nightly backup
+
+[Service]
+Type=oneshot
+EnvironmentFile=-/etc/ainode/node-status.env
+Environment=AUDIT_ROOT={{ audit_root }}
+Environment=BACKUP_ROOT={{ backup_root }}
+Environment=CONFIG_ROOT=/etc/ainode
+ExecStart=/usr/local/bin/backup.sh
