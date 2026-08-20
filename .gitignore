@@ -13,6 +13,7 @@ packer/output-*/
 dist/
 mcp-servers/attack-mcp/data/*.json
 !mcp-servers/attack-mcp/tests/fixtures/*.json
+skills/rendered/
 
 # Python
 __pycache__/
