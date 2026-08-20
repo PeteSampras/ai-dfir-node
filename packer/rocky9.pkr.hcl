@@ -21,7 +21,7 @@ source "qemu" "rocky9" {
 
   http_directory = "http"
 
-  boot_wait = "10s"
+  boot_wait = var.boot_wait
   boot_command = [
     "<up><tab> inst.text inst.ks=http://{{ .HTTPIP }}:{{ .HTTPPort }}/ks.cfg<enter>"
   ]

@@ -36,3 +36,15 @@ variable "accelerator" {
   # to pick up) -- tcg is qemu's software emulator, much slower but needs
   # no special device permissions at all.
 }
+
+variable "boot_wait" {
+  type    = string
+  default = "30s"
+  # How long to wait after power-on before typing the boot_command over VNC.
+  # Under tcg (software emulation) BIOS/GRUB rendering is much slower than
+  # under kvm; too short a wait sends the boot_command keystrokes before the
+  # boot menu is actually up, silently missing the kickstart entirely (the
+  # installer sits at an interactive screen burning CPU with zero disk
+  # writes -- easy to mistake for "still installing"). Bump higher (e.g.
+  # 60s) if that happens again.
+}
