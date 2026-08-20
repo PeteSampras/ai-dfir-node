@@ -12,12 +12,19 @@ See `docs/specs/2026-08-20-ai-dfir-node-design.md` for the full design and
 ## Quick start (local test build — no ESXi/GPU required)
 
 ```bash
-make packer-build   # builds a Rocky 9 qcow2 under local KVM
+make packer-build   # generates a per-host SSH test key + kickstart, builds a Rocky 9 qcow2 under local KVM
 make vm-up           # boots it, waits for SSH
 make provision-test  # runs the full Ansible site.yml against it (test group_vars)
 make test             # runs every automated check this box can run
 make vm-down
 ```
+
+Nothing to prepare by hand first: `packer-build`/`packer-validate` both depend on the
+`kickstart` target, which generates `~/.ssh/ai_dfir_node_test_ed25519` (if it doesn't
+already exist) and renders `packer/http/ks.cfg` from `ks.cfg.tmpl` with that key baked
+in. `ks.cfg` itself is gitignored on purpose — it always carries a real key, so it must
+never be the thing that's committed (only `ks.cfg.tmpl`, with the `__SSH_PUBLIC_KEY__`
+placeholder, is tracked).
 
 Already have the Rocky 9 minimal ISO downloaded? Point Packer at it instead of
 re-fetching (`iso_checksum=none` skips verification — trust the file, or pass

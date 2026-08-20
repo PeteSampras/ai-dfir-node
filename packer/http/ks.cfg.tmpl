@@ -30,7 +30,7 @@ python3
 mkdir -p /home/ainode/.ssh
 chmod 700 /home/ainode/.ssh
 cat > /home/ainode/.ssh/authorized_keys <<'EOF'
-ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIB9nQakHxqWHC03iCqTGAyBcsyOVPAsZ0484SOMPlvAz ai-dfir-node-test
+__SSH_PUBLIC_KEY__
 EOF
 chmod 600 /home/ainode/.ssh/authorized_keys
 chown -R ainode:ainode /home/ainode/.ssh

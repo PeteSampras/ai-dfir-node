@@ -1,4 +1,4 @@
-.PHONY: test lint packer-validate packer-build vm-up vm-down provision-test ova
+.PHONY: test lint kickstart packer-validate packer-build vm-up vm-down provision-test ova
 
 VM_NAME := ai-dfir-node-test
 SSH_KEY := $(HOME)/.ssh/ai_dfir_node_test_ed25519
@@ -14,10 +14,13 @@ lint:
 	@echo "== ansible-lint ==" && cd ansible && ansible-lint
 	@echo "== ansible syntax-check ==" && cd ansible && ansible-playbook -i inventory/test.ini site.yml --syntax-check
 
-packer-validate:
+kickstart:
+	scripts/render-kickstart.sh
+
+packer-validate: kickstart
 	cd packer && packer validate $(PACKER_VARS) .
 
-packer-build:
+packer-build: kickstart
 	cd packer && packer build $(PACKER_VARS) .
 
 vm-up:
