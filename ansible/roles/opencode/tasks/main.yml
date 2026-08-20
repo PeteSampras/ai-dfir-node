@@ -10,9 +10,16 @@
   environment:
     HOME: /home/ainode
 
-- name: Install python3.11 (Rocky 9's default python3 is 3.9 -- both MCP servers declare requires-python >=3.11)
+# Two DIFFERENT interpreters need packaging/pip here, not one:
+# - system python3 (3.9) is what Ansible's OWN module code runs under by
+#   default (ansible_python_interpreter) -- the pip module's version-compare
+#   logic imports `packaging` there, regardless of what venv it's creating.
+# - python3.11 is what the VENV itself needs, since both MCP servers declare
+#   requires-python >=3.11 and Rocky 9's default python3 is 3.9.
+- name: Install python3-pip (Ansible's own module execution needs 'packaging' in the system interpreter) and python3.11 (for the venvs themselves)
   ansible.builtin.dnf:
     name:
+      - python3-pip
       - python3.11
       - python3.11-pip
     state: present
