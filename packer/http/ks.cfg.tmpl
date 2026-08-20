@@ -18,7 +18,7 @@ selinux --enforcing
 rootpw --lock
 user --name=ainode --groups=wheel --plaintext --password=ainode-temp-changeme
 
-%packages --minimal --excludedocs
+%packages --excludedocs
 @core
 openssh-server
 sudo
