@@ -1,6 +1,13 @@
 # Copy to production.ini (gitignored) and fill in the real node's address.
+#
+# Connects as `provision`, NOT `ainode`: the audit_logging role forces the
+# ainode user's SSH sessions through tlog-rec-session, which always launches
+# an interactive shell and ignores SSH_ORIGINAL_COMMAND (Scribery/tlog#227) --
+# so Ansible can never run module code as ainode once that role has deployed.
+# `provision` is a separate, unrecorded automation account created by the
+# same kickstart (ks.cfg.tmpl) for exactly this purpose.
 [ainode_production]
-ainode.your-lab.example ansible_user=ainode ansible_ssh_private_key_file=~/.ssh/ai_dfir_node_production_ed25519
+ainode.your-lab.example ansible_user=provision ansible_ssh_private_key_file=~/.ssh/ai_dfir_node_production_ed25519
 
 [ainode_production:vars]
 ansible_python_interpreter=/usr/bin/python3

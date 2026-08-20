@@ -13,6 +13,20 @@
     state: directory
     mode: "0755"
 
+# Explicit, BEFORE any of its children: ansible.builtin.file auto-creates
+# missing parents, but does so as root:root mode 0750 -- world/group-
+# untraversable to anyone outside the root group. That silently blocked the
+# ainode user from ever reaching audit_root (a child of this same parent)
+# regardless of audit_root's own ownership, since traversal requires execute
+# permission on every path component, not just the leaf directory.
+- name: Ensure /srv/ainode parent exists and is traversable by non-root users
+  ansible.builtin.file:
+    path: /srv/ainode
+    state: directory
+    owner: root
+    group: root
+    mode: "0755"
+
 - name: Ensure scratch/backup roots exist
   ansible.builtin.file:
     path: "{{ item }}"
@@ -22,13 +36,19 @@
     - "{{ scratch_root }}"
     - "{{ backup_root }}"
 
-- name: Ensure audit root exists, owned by ainode (tlog-rec-session runs as ainode and needs to traverse it)
+# A pure traversable umbrella, not owned by any one service: its children
+# have different real owners (mcp-calls is root, since podman/containers run
+# rootful; sessions is the dedicated tlog system user, since tlog-rec-session
+# is setuid/setgid to it -- see audit_logging role). 0755 lets every one of
+# them traverse through here regardless of group membership, while the
+# actual content stays protected by each child's own tighter mode.
+- name: Ensure audit root exists (traversable umbrella; each child directory owns its own tighter permissions)
   ansible.builtin.file:
     path: "{{ audit_root }}"
     state: directory
-    owner: ainode
-    group: ainode
-    mode: "0750"
+    owner: root
+    group: root
+    mode: "0755"
 
 - name: Enable podman.socket
   ansible.builtin.systemd:

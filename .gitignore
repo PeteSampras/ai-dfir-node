@@ -25,3 +25,6 @@ __pycache__/
 # Editors
 .vscode/
 *.swp
+
+# Local debug scratch (VNC/serial-console helper scripts, not deliverables)
+.scratch/

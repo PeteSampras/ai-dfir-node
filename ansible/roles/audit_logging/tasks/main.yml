@@ -17,13 +17,20 @@
     enabled: true
     state: started
 
-- name: Ensure tlog session directory exists (owned by ainode -- tlog-rec-session runs as the authenticating user, not root)
+# tlog-rec-session is setuid+setgid to the dedicated 'tlog' system user
+# (rwsr-sr-x tlog tlog, by RPM packaging design -- so the recorded user can't
+# tamper with or delete their own session log). It runs as tlog, never as
+# ainode and never as root, so the directory it writes into must be owned by
+# tlog:tlog, not ainode:ainode. (The path down to here must still be
+# traversable by tlog too -- see the /srv/ainode parent-directory fix in the
+# podman_base role.)
+- name: Ensure tlog session directory exists (owned by tlog -- tlog-rec-session is setuid/setgid to the tlog system user, not the authenticating user)
   ansible.builtin.file:
     path: "{{ audit_root }}/sessions"
     state: directory
-    owner: ainode
-    group: ainode
-    mode: "0750"
+    owner: tlog
+    group: tlog
+    mode: "0770"
 
 - name: Deploy tlog config
   ansible.builtin.template:
