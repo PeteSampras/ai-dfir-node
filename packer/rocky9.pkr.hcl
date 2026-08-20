@@ -23,7 +23,7 @@ source "qemu" "rocky9" {
 
   boot_wait = var.boot_wait
   boot_command = [
-    "<up><tab> inst.text inst.ks=http://{{ .HTTPIP }}:{{ .HTTPPort }}/ks.cfg<enter>"
+    "<tab><wait> inst.text inst.ks=http://{{ .HTTPIP }}:{{ .HTTPPort }}/ks.cfg<enter><wait>"
   ]
 
   ssh_username = "ainode"
