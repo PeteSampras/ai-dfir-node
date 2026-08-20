@@ -1,0 +1,25 @@
+# Secrets — never committed
+ansible/group_vars/all.yml
+ansible/group_vars/production.yml
+ansible/inventory/production.ini
+*.pem
+*.key
+
+# Build artifacts
+packer/output-*/
+*.qcow2
+*.vmdk
+*.ova
+dist/
+mcp-servers/attack-mcp/data/*.json
+!mcp-servers/attack-mcp/tests/fixtures/*.json
+
+# Python
+__pycache__/
+*.pyc
+.pytest_cache/
+.venv/
+
+# Editors
+.vscode/
+*.swp
