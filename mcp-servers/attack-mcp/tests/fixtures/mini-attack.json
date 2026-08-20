@@ -1,0 +1,30 @@
+{
+  "type": "bundle",
+  "id": "bundle--test",
+  "objects": [
+    {
+      "type": "attack-pattern",
+      "id": "attack-pattern--t1059-001",
+      "name": "PowerShell",
+      "description": "Adversaries may abuse PowerShell for execution.",
+      "kill_chain_phases": [
+        {"kill_chain_name": "mitre-attack", "phase_name": "execution"}
+      ],
+      "external_references": [
+        {"source_name": "mitre-attack", "external_id": "T1059.001"}
+      ]
+    },
+    {
+      "type": "attack-pattern",
+      "id": "attack-pattern--t1003",
+      "name": "OS Credential Dumping",
+      "description": "Adversaries may attempt to dump credentials from the OS.",
+      "kill_chain_phases": [
+        {"kill_chain_name": "mitre-attack", "phase_name": "credential-access"}
+      ],
+      "external_references": [
+        {"source_name": "mitre-attack", "external_id": "T1003"}
+      ]
+    }
+  ]
+}
