@@ -10,8 +10,8 @@ test: lint
 	@echo "== script tests ==" && bash scripts/tests/test-node-status.sh && bash scripts/tests/test-backup.sh
 
 lint:
-	@echo "== shellcheck ==" && shellcheck scripts/*.sh packer/http/ks.cfg || true
-	@echo "== ansible-lint ==" && cd ansible && ansible-lint || true
+	@echo "== shellcheck ==" && shellcheck scripts/*.sh scripts/tests/*.sh scripts/tests/stubs/*
+	@echo "== ansible-lint ==" && cd ansible && ansible-lint
 	@echo "== ansible syntax-check ==" && cd ansible && ansible-playbook -i inventory/test.ini site.yml --syntax-check
 
 packer-validate:

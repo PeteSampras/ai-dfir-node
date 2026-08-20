@@ -1,0 +1,9 @@
+FROM registry.access.redhat.com/ubi9/python-311:latest
+WORKDIR /app
+COPY pyproject.toml .
+COPY attack_mcp ./attack_mcp
+COPY data ./data
+RUN pip install --no-cache-dir .
+ENV MCP_TRANSPORT=sse MCP_PORT=9001
+EXPOSE 9001
+ENTRYPOINT ["attack-mcp"]

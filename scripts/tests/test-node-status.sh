@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+# shellcheck disable=SC2015  # `A && pass-report || fail-report` is intentional here: both branches are side-effect-only counters
 set -euo pipefail
 DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 STUBS="$DIR/stubs"

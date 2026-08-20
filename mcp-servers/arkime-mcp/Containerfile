@@ -1,0 +1,8 @@
+FROM registry.access.redhat.com/ubi9/python-311:latest
+WORKDIR /app
+COPY pyproject.toml .
+COPY arkime_mcp ./arkime_mcp
+RUN pip install --no-cache-dir .
+ENV MCP_TRANSPORT=sse MCP_PORT=9002
+EXPOSE 9002
+ENTRYPOINT ["arkime-mcp"]

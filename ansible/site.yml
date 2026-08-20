@@ -1,0 +1,9 @@
+---
+- name: AI DFIR Node
+  hosts: all
+  become: true
+  roles:
+    - base_hardening
+    - nvidia_gpu
+    - podman_base
+    - mcp_servers

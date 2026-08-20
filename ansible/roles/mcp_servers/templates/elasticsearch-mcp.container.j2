@@ -1,0 +1,14 @@
+[Unit]
+Description=elasticsearch-mcp (read-only ES lookups over Zeek/Sysmon/Suricata indices)
+After=network-online.target
+
+[Container]
+Image=localhost/elasticsearch-mcp:latest
+PublishPort=127.0.0.1:9003:9003
+EnvironmentFile=/etc/ainode/elasticsearch-mcp.env
+
+[Service]
+Restart=always
+
+[Install]
+WantedBy=multi-user.target

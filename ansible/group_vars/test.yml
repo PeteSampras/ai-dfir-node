@@ -1,0 +1,13 @@
+---
+gpu_available: false
+elasticsearch_configured: false
+arkime_configured: false
+air_gapped: false
+
+model_repo: "unsloth/placeholder-muse-glimmer-GGUF"   # set for real in production.yml (Task 9)
+model_file: "muse-glimmer.Q4_K_M.gguf"
+model_context_size: 8192
+
+audit_root: /srv/ainode/audit
+scratch_root: /srv/ainode/scratch
+backup_root: /srv/ainode/backup

@@ -35,6 +35,7 @@ for i in $(seq -w 1 5); do
     BACKUP_ROOT="$WORK/backup" BACKUP_TIMESTAMP="2026010${i}T000000Z" BACKUP_KEEP=3 \
     bash "$BACKUP_SH" > /dev/null
 done
+# shellcheck disable=SC2012  # fixed ainode-backup-<timestamp>.tar.gz filenames, no non-alphanumeric edge cases
 count=$(ls -1 "$WORK/backup"/ainode-backup-*.tar.gz | wc -l)
 if [[ "$count" -eq 3 ]]; then
   echo "PASS: pruning keeps exactly BACKUP_KEEP=3 archives"; pass=$((pass+1))

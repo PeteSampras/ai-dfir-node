@@ -1,0 +1,8 @@
+FROM registry.access.redhat.com/ubi9/nodejs-20-minimal:latest
+USER 0
+RUN npm install -g @elastic/mcp-server-elasticsearch@latest && \
+    npm cache clean --force
+USER 1001
+ENV MCP_TRANSPORT=sse MCP_PORT=9003
+EXPOSE 9003
+ENTRYPOINT ["mcp-server-elasticsearch"]

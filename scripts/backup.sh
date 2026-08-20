@@ -14,6 +14,7 @@ OUT="${BACKUP_ROOT}/ainode-backup-${TS}.tar.gz"
 TMP_MANIFEST="$(mktemp)"
 trap 'rm -f "$TMP_MANIFEST"' EXIT
 
+# shellcheck disable=SC2015  # intentional: `|| true` guards each line against set -e when the dir is absent
 {
   [[ -d "$AUDIT_ROOT" ]] && echo "$AUDIT_ROOT" || true
   [[ -d "$CONFIG_ROOT" ]] && echo "$CONFIG_ROOT" || true
@@ -29,6 +30,7 @@ tar -czf "$OUT" -T "$TMP_MANIFEST"
 echo "Wrote $OUT ($(du -h "$OUT" | cut -f1))"
 
 # Prune to the newest $KEEP backups
+# shellcheck disable=SC2012  # filenames are our own fixed ainode-backup-<timestamp>.tar.gz pattern; ls -t is simplest for mtime order
 mapfile -t old < <(ls -1t "${BACKUP_ROOT}"/ainode-backup-*.tar.gz 2>/dev/null | tail -n +"$((KEEP + 1))")
 for f in "${old[@]:-}"; do
   [[ -n "$f" ]] || continue

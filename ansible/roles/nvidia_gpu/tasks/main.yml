@@ -1,0 +1,40 @@
+---
+- name: NVIDIA driver + container toolkit (real hardware only)
+  when: gpu_available
+  block:
+    - name: Add CUDA repo
+      ansible.builtin.get_url:
+        url: https://developer.download.nvidia.com/compute/cuda/repos/rhel9/x86_64/cuda-rhel9.repo
+        dest: /etc/yum.repos.d/cuda-rhel9.repo
+        mode: "0644"
+
+    - name: Add nvidia-container-toolkit repo
+      ansible.builtin.get_url:
+        url: https://nvidia.github.io/libnvidia-container/stable/rpm/nvidia-container-toolkit.repo
+        dest: /etc/yum.repos.d/nvidia-container-toolkit.repo
+        mode: "0644"
+
+    - name: Install open-kernel-module driver + toolkit
+      ansible.builtin.dnf:
+        name:
+          - kmod-nvidia-open-dkms
+          - nvidia-container-toolkit
+        state: present
+
+    - name: Generate CDI spec for podman
+      ansible.builtin.command: nvidia-ctk cdi generate --output=/etc/cdi/nvidia.yaml
+      changed_when: true
+
+    - name: Verify GPU is visible (real hardware only)
+      ansible.builtin.command: nvidia-smi --query-gpu=name,memory.total --format=csv,noheader
+      register: nvidia_smi_out
+      changed_when: false
+
+    - name: Report detected GPU
+      ansible.builtin.debug:
+        msg: "{{ nvidia_smi_out.stdout }}"
+
+- name: Skip note when GPU not available
+  ansible.builtin.debug:
+    msg: "gpu_available=false — nvidia_gpu role skipped. This is expected on the local test VM; see docs/runbooks/gpu-passthrough.md for the real-hardware procedure."
+  when: not gpu_available

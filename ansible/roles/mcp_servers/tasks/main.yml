@@ -1,0 +1,95 @@
+---
+- name: Copy attack-mcp build context
+  ansible.builtin.copy:
+    src: "{{ playbook_dir }}/../mcp-servers/attack-mcp/"
+    dest: /opt/ainode/build/attack-mcp/
+    mode: "0644"
+
+- name: Verify the ATT&CK dataset is present and non-trivial before building
+  ansible.builtin.stat:
+    path: /opt/ainode/build/attack-mcp/data/enterprise-attack.json
+  register: attack_data_stat
+
+- name: Fail loudly if ATT&CK data was never pinned
+  ansible.builtin.fail:
+    msg: >
+      mcp-servers/attack-mcp/data/enterprise-attack.json is missing or empty.
+      Run scripts/pin-attack-data.sh (needs internet) before deploying, or the
+      attack-mcp container will build with no ATT&CK data.
+  when: not attack_data_stat.stat.exists or attack_data_stat.stat.size < 1000
+
+- name: Build attack-mcp image
+  containers.podman.podman_image:
+    name: localhost/attack-mcp:latest
+    path: /opt/ainode/build/attack-mcp
+    build:
+      format: docker
+
+- name: Deploy attack-mcp quadlet
+  ansible.builtin.template:
+    src: attack-mcp.container.j2
+    dest: /etc/containers/systemd/attack-mcp.container
+    mode: "0644"
+  notify: Reload systemd and restart attack-mcp
+
+- name: Arkime MCP (only when arkime_configured)
+  when: arkime_configured
+  block:
+    - name: Copy arkime-mcp build context
+      ansible.builtin.copy:
+        src: "{{ playbook_dir }}/../mcp-servers/arkime-mcp/"
+        dest: /opt/ainode/build/arkime-mcp/
+        mode: "0644"
+
+    - name: Build arkime-mcp image
+      containers.podman.podman_image:
+        name: localhost/arkime-mcp:latest
+        path: /opt/ainode/build/arkime-mcp
+        build:
+          format: docker
+
+    - name: Write arkime-mcp env file (credentials, never in git)
+      ansible.builtin.template:
+        src: arkime-mcp.env.j2
+        dest: /etc/ainode/arkime-mcp.env
+        mode: "0600"
+
+    - name: Deploy arkime-mcp quadlet
+      ansible.builtin.template:
+        src: arkime-mcp.container.j2
+        dest: /etc/containers/systemd/arkime-mcp.container
+        mode: "0644"
+      notify: Reload systemd and restart arkime-mcp
+
+- name: Elasticsearch MCP (only when elasticsearch_configured)
+  when: elasticsearch_configured
+  block:
+    - name: Copy elasticsearch-mcp build context
+      ansible.builtin.copy:
+        src: "{{ playbook_dir }}/../mcp-servers/elasticsearch-mcp/"
+        dest: /opt/ainode/build/elasticsearch-mcp/
+        mode: "0644"
+
+    - name: Build elasticsearch-mcp image
+      containers.podman.podman_image:
+        name: localhost/elasticsearch-mcp:latest
+        path: /opt/ainode/build/elasticsearch-mcp
+        build:
+          format: docker
+
+    - name: Write elasticsearch-mcp env file (credentials, never in git)
+      ansible.builtin.template:
+        src: elasticsearch-mcp.env.j2
+        dest: /etc/ainode/elasticsearch-mcp.env
+        mode: "0600"
+
+    - name: Deploy elasticsearch-mcp quadlet
+      ansible.builtin.template:
+        src: elasticsearch-mcp.container.j2
+        dest: /etc/containers/systemd/elasticsearch-mcp.container
+        mode: "0644"
+      notify: Reload systemd and restart elasticsearch-mcp
+
+- name: Reload systemd now so this run's verify step sees the new units
+  ansible.builtin.systemd:
+    daemon_reload: true

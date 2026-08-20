@@ -1,0 +1,20 @@
+---
+# Copy to group_vars/production.yml (gitignored) and fill in real values.
+gpu_available: true
+elasticsearch_configured: true
+arkime_configured: true
+air_gapped: false   # flip true once the enclave has its own DNS/NTP
+
+elasticsearch_url: "https://es.your-soc.example:9200"
+elasticsearch_api_key: "CHANGEME"          # read-only key scoped to zeek/sysmon/suricata/logstash indices
+
+arkime_base_url: "https://arkime.your-soc.example"
+arkime_api_token: "CHANGEME"               # view-only account
+
+model_repo: "unsloth/muse-glimmer-GGUF"    # confirm exact repo name at build time
+model_file: "muse-glimmer.Q5_K_M.gguf"
+model_context_size: 32768
+
+audit_root: /srv/ainode/audit
+scratch_root: /srv/ainode/scratch
+backup_root: /srv/ainode/backup
