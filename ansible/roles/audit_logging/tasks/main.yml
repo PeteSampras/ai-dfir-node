@@ -17,10 +17,12 @@
     enabled: true
     state: started
 
-- name: Ensure tlog session directory exists
+- name: Ensure tlog session directory exists (owned by ainode -- tlog-rec-session runs as the authenticating user, not root)
   ansible.builtin.file:
     path: "{{ audit_root }}/sessions"
     state: directory
+    owner: ainode
+    group: ainode
     mode: "0750"
 
 - name: Deploy tlog config

@@ -13,15 +13,22 @@
     state: directory
     mode: "0755"
 
-- name: Ensure scratch/audit/backup roots exist
+- name: Ensure scratch/backup roots exist
   ansible.builtin.file:
     path: "{{ item }}"
     state: directory
     mode: "0750"
   loop:
     - "{{ scratch_root }}"
-    - "{{ audit_root }}"
     - "{{ backup_root }}"
+
+- name: Ensure audit root exists, owned by ainode (tlog-rec-session runs as ainode and needs to traverse it)
+  ansible.builtin.file:
+    path: "{{ audit_root }}"
+    state: directory
+    owner: ainode
+    group: ainode
+    mode: "0750"
 
 - name: Enable podman.socket
   ansible.builtin.systemd:
