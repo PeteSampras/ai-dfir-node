@@ -1,4 +1,5 @@
 """FastMCP server exposing MITRE ATT&CK lookups over a pinned local STIX bundle."""
+import datetime
 import json
 import os
 from pathlib import Path
@@ -6,8 +7,23 @@ from pathlib import Path
 from mcp.server.fastmcp import FastMCP
 
 DATA_PATH = Path(__file__).parent.parent / "data" / "enterprise-attack.json"
+AUDIT_LOG = os.environ.get("MCP_AUDIT_LOG", "/srv/ainode/audit/mcp-calls.jsonl")
 
 mcp = FastMCP("attack-mcp")
+
+
+def _audit(tool: str, args: dict, result_summary: str) -> None:
+    try:
+        with open(AUDIT_LOG, "a", encoding="utf-8") as f:
+            f.write(json.dumps({
+                "ts": datetime.datetime.now(datetime.timezone.utc).isoformat(),
+                "server": "attack-mcp",
+                "tool": tool,
+                "args": args,
+                "result_summary": result_summary,
+            }) + "\n")
+    except OSError:
+        pass  # audit logging must never crash the tool call
 
 
 def _load_bundle(path: Path = None) -> dict:
@@ -33,18 +49,21 @@ def lookup_technique(technique_id: str) -> dict:
     index = _index_techniques(bundle)
     obj = index.get(technique_id.upper())
     if obj is None:
-        return {"found": False, "technique_id": technique_id}
-    return {
-        "found": True,
-        "technique_id": technique_id.upper(),
-        "name": obj.get("name"),
-        "description": obj.get("description"),
-        "tactics": [
-            phase["phase_name"]
-            for phase in obj.get("kill_chain_phases", [])
-            if phase.get("kill_chain_name") == "mitre-attack"
-        ],
-    }
+        result = {"found": False, "technique_id": technique_id}
+    else:
+        result = {
+            "found": True,
+            "technique_id": technique_id.upper(),
+            "name": obj.get("name"),
+            "description": obj.get("description"),
+            "tactics": [
+                phase["phase_name"]
+                for phase in obj.get("kill_chain_phases", [])
+                if phase.get("kill_chain_name") == "mitre-attack"
+            ],
+        }
+    _audit("lookup_technique", {"technique_id": technique_id}, f"found={result['found']}")
+    return result
 
 
 @mcp.tool()
@@ -65,6 +84,7 @@ def search_techniques(keyword: str) -> list[dict]:
                 None,
             )
             results.append({"technique_id": ext_id, "name": name})
+    _audit("search_techniques", {"keyword": keyword}, f"matches={len(results)}")
     return results
 
 

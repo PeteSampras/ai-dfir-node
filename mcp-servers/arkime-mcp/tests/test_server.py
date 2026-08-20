@@ -1,3 +1,4 @@
+import json
 import httpx
 from arkime_mcp import server
 
@@ -57,3 +58,18 @@ def test_fetch_pcap_slice_writes_file(monkeypatch, tmp_path):
     result = server.fetch_pcap_slice("sess-1", dest_dir=str(tmp_path))
     assert result["bytes"] == len(b"FAKEPCAPBYTES")
     assert (tmp_path / "sess-1.pcap").read_bytes() == b"FAKEPCAPBYTES"
+
+
+def test_search_sessions_writes_audit_log(monkeypatch, tmp_path):
+    def handler(request: httpx.Request) -> httpx.Response:
+        return httpx.Response(200, json={"data": [{"id": "abc123"}]})
+
+    log_path = tmp_path / "mcp-calls.jsonl"
+    monkeypatch.setattr(server, "AUDIT_LOG", str(log_path))
+    monkeypatch.setattr(server, "_client", lambda: _mock_client(handler))
+    server.search_sessions("ip.src==10.0.0.5", "t0", "t1")
+    lines = log_path.read_text().splitlines()
+    assert len(lines) == 1
+    entry = json.loads(lines[0])
+    assert entry["tool"] == "search_sessions"
+    assert entry["server"] == "arkime-mcp"

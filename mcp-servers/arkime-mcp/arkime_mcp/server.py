@@ -3,6 +3,8 @@
 Exactly four tools by design (spec cap) — do not add a fifth without updating
 docs/specs/2026-08-20-ai-dfir-node-design.md first.
 """
+import datetime
+import json
 import os
 import pathlib
 from typing import Any
@@ -11,6 +13,21 @@ import httpx
 from mcp.server.fastmcp import FastMCP
 
 mcp = FastMCP("arkime-mcp")
+AUDIT_LOG = os.environ.get("MCP_AUDIT_LOG", "/srv/ainode/audit/mcp-calls.jsonl")
+
+
+def _audit(tool: str, args: dict, result_summary: str) -> None:
+    try:
+        with open(AUDIT_LOG, "a", encoding="utf-8") as f:
+            f.write(json.dumps({
+                "ts": datetime.datetime.now(datetime.timezone.utc).isoformat(),
+                "server": "arkime-mcp",
+                "tool": tool,
+                "args": args,
+                "result_summary": result_summary,
+            }) + "\n")
+    except OSError:
+        pass  # audit logging must never crash the tool call
 
 
 def _client() -> httpx.Client:
@@ -29,7 +46,9 @@ def search_sessions(expression: str, start_time: str, end_time: str, limit: int 
             params={"expression": expression, "startTime": start_time, "stopTime": end_time, "length": limit},
         )
         resp.raise_for_status()
-        return resp.json().get("data", [])
+        result = resp.json().get("data", [])
+    _audit("search_sessions", {"expression": expression, "start_time": start_time, "end_time": end_time, "limit": limit}, f"count={len(result)}")
+    return result
 
 
 @mcp.tool()
@@ -41,7 +60,9 @@ def get_spi_data(expression: str, field: str, start_time: str, end_time: str) ->
             params={"expression": expression, "spi": field, "startTime": start_time, "stopTime": end_time},
         )
         resp.raise_for_status()
-        return resp.json().get("spi", {}).get(field, {}).get("values", [])
+        result = resp.json().get("spi", {}).get(field, {}).get("values", [])
+    _audit("get_spi_data", {"expression": expression, "field": field}, f"count={len(result)}")
+    return result
 
 
 @mcp.tool()
@@ -53,7 +74,9 @@ def unique_values(field: str, expression: str = "") -> list[str]:
             params["expression"] = expression
         resp = client.get("/api/unique", params=params)
         resp.raise_for_status()
-        return [line for line in resp.text.splitlines() if line]
+        result = [line for line in resp.text.splitlines() if line]
+    _audit("unique_values", {"field": field, "expression": expression}, f"count={len(result)}")
+    return result
 
 
 @mcp.tool()
@@ -66,7 +89,9 @@ def fetch_pcap_slice(session_id: str, dest_dir: str = "/srv/ainode/scratch") -> 
         dest.mkdir(parents=True, exist_ok=True)
         out_path = dest / f"{session_id}.pcap"
         out_path.write_bytes(resp.content)
-        return {"session_id": session_id, "path": str(out_path), "bytes": len(resp.content)}
+        result = {"session_id": session_id, "path": str(out_path), "bytes": len(resp.content)}
+    _audit("fetch_pcap_slice", {"session_id": session_id}, f"bytes={result['bytes']}")
+    return result
 
 
 def main() -> None:

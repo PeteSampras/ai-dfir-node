@@ -1,3 +1,4 @@
+import json
 from pathlib import Path
 import pytest
 from attack_mcp import server
@@ -36,3 +37,14 @@ def test_search_techniques_matches_keyword():
 def test_search_techniques_no_match():
     results = server.search_techniques("nonexistent-keyword-xyz")
     assert results == []
+
+
+def test_lookup_technique_writes_audit_log(monkeypatch, tmp_path):
+    log_path = tmp_path / "mcp-calls.jsonl"
+    monkeypatch.setattr(server, "AUDIT_LOG", str(log_path))
+    server.lookup_technique("T1059.001")
+    lines = log_path.read_text().splitlines()
+    assert len(lines) == 1
+    entry = json.loads(lines[0])
+    assert entry["tool"] == "lookup_technique"
+    assert entry["server"] == "attack-mcp"
