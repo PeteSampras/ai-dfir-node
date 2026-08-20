@@ -10,6 +10,12 @@
     state: directory
     mode: "0750"
 
+- name: Ensure attack-mcp build context directory exists (copying a single file, unlike a directory, does not auto-create its parent)
+  ansible.builtin.file:
+    path: /opt/ainode/build/attack-mcp
+    state: directory
+    mode: "0755"
+
 # Only the paths the Containerfile actually COPYs -- not the whole directory
 # (which may also contain a local .venv/tests/__pycache__ from development;
 # ansible.builtin.copy has no directory-tree exclude filter, and a stray
@@ -59,6 +65,12 @@
 - name: Arkime MCP (only when arkime_configured)
   when: arkime_configured
   block:
+    - name: Ensure arkime-mcp build context directory exists (copying a single file, unlike a directory, does not auto-create its parent)
+      ansible.builtin.file:
+        path: /opt/ainode/build/arkime-mcp
+        state: directory
+        mode: "0755"
+
     - name: Copy arkime-mcp build context (only the paths the Containerfile needs)
       ansible.builtin.copy:
         src: "{{ playbook_dir }}/../mcp-servers/arkime-mcp/{{ item }}"
