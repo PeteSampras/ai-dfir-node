@@ -26,6 +26,7 @@
     dest: "/opt/ainode/build/attack-mcp/{{ item }}"
     mode: "0644"
   loop:
+    - Containerfile
     - pyproject.toml
     - attack_mcp/
     - data/
@@ -77,6 +78,7 @@
         dest: "/opt/ainode/build/arkime-mcp/{{ item }}"
         mode: "0644"
       loop:
+        - Containerfile
         - pyproject.toml
         - arkime_mcp/
 
