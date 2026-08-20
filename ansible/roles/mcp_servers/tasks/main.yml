@@ -10,11 +10,19 @@
     state: directory
     mode: "0750"
 
-- name: Copy attack-mcp build context
+# Only the paths the Containerfile actually COPYs -- not the whole directory
+# (which may also contain a local .venv/tests/__pycache__ from development;
+# ansible.builtin.copy has no directory-tree exclude filter, and a stray
+# multi-hundred-file venv turns this into a very slow per-file SFTP transfer).
+- name: Copy attack-mcp build context (only the paths the Containerfile needs)
   ansible.builtin.copy:
-    src: "{{ playbook_dir }}/../mcp-servers/attack-mcp/"
-    dest: /opt/ainode/build/attack-mcp/
+    src: "{{ playbook_dir }}/../mcp-servers/attack-mcp/{{ item }}"
+    dest: "/opt/ainode/build/attack-mcp/{{ item }}"
     mode: "0644"
+  loop:
+    - pyproject.toml
+    - attack_mcp/
+    - data/
 
 - name: Verify the ATT&CK dataset is present and non-trivial before building
   ansible.builtin.stat:
@@ -51,11 +59,14 @@
 - name: Arkime MCP (only when arkime_configured)
   when: arkime_configured
   block:
-    - name: Copy arkime-mcp build context
+    - name: Copy arkime-mcp build context (only the paths the Containerfile needs)
       ansible.builtin.copy:
-        src: "{{ playbook_dir }}/../mcp-servers/arkime-mcp/"
-        dest: /opt/ainode/build/arkime-mcp/
+        src: "{{ playbook_dir }}/../mcp-servers/arkime-mcp/{{ item }}"
+        dest: "/opt/ainode/build/arkime-mcp/{{ item }}"
         mode: "0644"
+      loop:
+        - pyproject.toml
+        - arkime_mcp/
 
     - name: Build arkime-mcp image
       containers.podman.podman_image:
