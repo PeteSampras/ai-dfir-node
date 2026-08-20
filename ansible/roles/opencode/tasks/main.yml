@@ -10,9 +10,11 @@
   environment:
     HOME: /home/ainode
 
-- name: Install python3-pip (the ansible.builtin.pip module needs 'packaging' on the target, and our kickstart only installs bare python3)
+- name: Install python3.11 (Rocky 9's default python3 is 3.9 -- both MCP servers declare requires-python >=3.11)
   ansible.builtin.dnf:
-    name: python3-pip
+    name:
+      - python3.11
+      - python3.11-pip
     state: present
 
 - name: Create venv dirs for stdio-invoked MCP servers
@@ -26,13 +28,13 @@
   ansible.builtin.pip:
     name: "/opt/ainode/build/attack-mcp"
     virtualenv: /opt/ainode/venvs/attack-mcp
-    virtualenv_command: python3 -m venv
+    virtualenv_command: python3.11 -m venv
 
 - name: Install arkime-mcp into its own venv (only when configured)
   ansible.builtin.pip:
     name: "/opt/ainode/build/arkime-mcp"
     virtualenv: /opt/ainode/venvs/arkime-mcp
-    virtualenv_command: python3 -m venv
+    virtualenv_command: python3.11 -m venv
   when: arkime_configured
 
 - name: Ensure opencode config dir exists for the ainode user
