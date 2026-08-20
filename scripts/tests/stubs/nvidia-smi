@@ -1,0 +1,2 @@
+#!/usr/bin/env bash
+echo "NVIDIA L4, 24576 MiB"

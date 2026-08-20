@@ -1,0 +1,10 @@
+#!/usr/bin/env bash
+# Fake systemctl: services in $FAKE_ACTIVE_UNITS (space-separated) report active.
+if [[ "$1" == "is-active" ]]; then
+  unit="$3"
+  for u in $FAKE_ACTIVE_UNITS; do
+    [[ "$u" == "$unit" ]] && exit 0
+  done
+  exit 3
+fi
+exit 0

@@ -1,0 +1,9 @@
+#!/usr/bin/env bash
+# Fake curl: always reports 200 for -w '%{http_code}' invocations.
+for arg in "$@"; do
+  if [[ "$arg" == *'%{http_code}'* ]]; then
+    echo -n "200"
+    exit 0
+  fi
+done
+exit 0
