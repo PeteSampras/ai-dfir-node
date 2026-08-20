@@ -19,6 +19,18 @@ make test             # runs every automated check this box can run
 make vm-down
 ```
 
+Already have the Rocky 9 minimal ISO downloaded? Point Packer at it instead of
+re-fetching (`iso_checksum=none` skips verification — trust the file, or pass
+your own `-var 'iso_checksum=sha256:<hash>'` instead):
+
+```bash
+make packer-build PACKER_VARS="-var iso_url=/path/to/Rocky-9-x86_64-minimal.iso -var iso_checksum=none"
+```
+
+`PACKER_VARS` passes through to both `packer-build` and `packer-validate` for
+any variable in `packer/variables.pkr.hcl` — e.g. `-var accelerator=tcg` on a
+host where `/dev/kvm` group membership needs a fresh login to take effect.
+
 ## Real deployment (ESXi + NVIDIA L4 + live ES/Arkime)
 
 See `docs/runbooks/esxi-import.md`, `docs/runbooks/gpu-passthrough.md`, and

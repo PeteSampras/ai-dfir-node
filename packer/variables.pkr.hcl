@@ -27,3 +27,12 @@ variable "cpus" {
   type    = number
   default = 4
 }
+
+variable "accelerator" {
+  type    = string
+  default = "kvm"
+  # Override with -var accelerator=tcg on a host where the current shell
+  # session predates a /dev/kvm group-membership grant (needs a fresh login
+  # to pick up) -- tcg is qemu's software emulator, much slower but needs
+  # no special device permissions at all.
+}

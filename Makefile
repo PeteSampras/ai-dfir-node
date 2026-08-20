@@ -15,10 +15,10 @@ lint:
 	@echo "== ansible syntax-check ==" && cd ansible && ansible-playbook -i inventory/test.ini site.yml --syntax-check
 
 packer-validate:
-	cd packer && packer validate -var-file=variables.pkr.hcl rocky9.pkr.hcl
+	cd packer && packer validate $(PACKER_VARS) .
 
 packer-build:
-	cd packer && packer build -var-file=variables.pkr.hcl rocky9.pkr.hcl
+	cd packer && packer build $(PACKER_VARS) .
 
 vm-up:
 	scripts/tests/vm-up.sh $(VM_NAME) $(SSH_KEY)

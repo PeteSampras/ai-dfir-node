@@ -16,7 +16,7 @@ source "qemu" "rocky9" {
   memory           = var.memory_mb
   cpus             = var.cpus
   format           = "qcow2"
-  accelerator      = "kvm"
+  accelerator      = var.accelerator
   headless         = true
 
   http_directory = "http"
