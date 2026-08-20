@@ -48,3 +48,16 @@ variable "boot_wait" {
   # writes -- easy to mistake for "still installing"). Bump higher (e.g.
   # 60s) if that happens again.
 }
+
+variable "cpu_model" {
+  type    = string
+  default = "max"
+  # Rocky/RHEL 9 requires x86-64-v2 CPU features (SSE4.2, POPCNT, etc.) --
+  # QEMU's own default CPU model doesn't provide them, which panics the
+  # installer kernel ~4s into boot ("Attempted to kill init!") with NO
+  # indication it's a CPU-features problem. "max" is accelerator-aware: under
+  # kvm it behaves like "host" (full passthrough); under tcg it's the most
+  # complete CPU QEMU's software emulation can provide. Works for both, no
+  # conditional needed. Do not use "host" directly -- that flag requires kvm
+  # and errors outright under tcg.
+}
