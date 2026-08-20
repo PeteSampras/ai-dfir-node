@@ -7,7 +7,7 @@ Image=localhost/arkime-mcp:latest
 PublishPort=127.0.0.1:9002:9002
 EnvironmentFile=/etc/ainode/arkime-mcp.env
 Volume=/srv/ainode/scratch:/srv/ainode/scratch:Z
-Volume={{ audit_root }}:{{ audit_root }}:Z
+Volume={{ audit_root }}/mcp-calls:{{ audit_root }}/mcp-calls:Z
 
 [Service]
 Restart=always

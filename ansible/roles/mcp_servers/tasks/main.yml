@@ -1,4 +1,15 @@
 ---
+# Deliberately its OWN subdirectory, not the shared audit_root -- container
+# bind mounts use :Z (SELinux private relabel), which would otherwise
+# relabel the whole audit tree to container_file_t and block the host-side
+# tlog-rec-session process (a completely different SELinux domain) from
+# writing session recordings into audit_root/sessions.
+- name: Ensure the MCP tool-call audit subdirectory exists (isolated from :Z-relabeled container mounts)
+  ansible.builtin.file:
+    path: "{{ audit_root }}/mcp-calls"
+    state: directory
+    mode: "0750"
+
 - name: Copy attack-mcp build context
   ansible.builtin.copy:
     src: "{{ playbook_dir }}/../mcp-servers/attack-mcp/"

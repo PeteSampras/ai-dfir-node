@@ -5,8 +5,8 @@ After=network-online.target
 [Container]
 Image=localhost/attack-mcp:latest
 PublishPort=127.0.0.1:9001:9001
-Environment=MCP_AUDIT_LOG={{ audit_root }}/mcp-calls.jsonl
-Volume={{ audit_root }}:{{ audit_root }}:Z
+Environment=MCP_AUDIT_LOG={{ audit_root }}/mcp-calls/mcp-calls.jsonl
+Volume={{ audit_root }}/mcp-calls:{{ audit_root }}/mcp-calls:Z
 
 [Service]
 Restart=always
