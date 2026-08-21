@@ -1,5 +1,0 @@
-#!/usr/bin/env bash
-# Fake df: always reports 42% used, regardless of path (real /srv/ainode
-# only exists on a provisioned target, not on this build box).
-echo "Use%"
-echo "42%"

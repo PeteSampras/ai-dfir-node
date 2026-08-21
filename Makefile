@@ -1,36 +1,48 @@
-.PHONY: test lint kickstart packer-validate packer-build vm-up vm-down provision-test ova
+# Minimal AI DFIR node -- Docker-only build.
+# The full Packer/Ansible appliance build lives on the `main` branch.
+.PHONY: up down build ps logs restart test render hunt playbooks audit health
 
-VM_NAME := ai-dfir-node-test
-SSH_KEY := $(HOME)/.ssh/ai_dfir_node_test_ed25519
+COMPOSE := docker compose -f docker-compose.minimal.yml --env-file .env.minimal
+PLAYBOOK ?= network-beaconing
+WINDOW   ?= 24h
+N        ?= 20
 
-test: lint
-	@echo "== attack-mcp tests ==" && cd mcp-servers/attack-mcp && .venv/bin/python -m pytest -q
-	@echo "== arkime-mcp tests ==" && cd mcp-servers/arkime-mcp && .venv/bin/python -m pytest -q
-	@echo "== skills render tests ==" && python3 -m pytest skills/tests -q
-	@echo "== script tests ==" && bash scripts/tests/test-node-status.sh && bash scripts/tests/test-backup.sh
+up:            ## build if needed and start the whole stack
+	$(COMPOSE) up -d --build
 
-lint:
-	@echo "== shellcheck ==" && shellcheck scripts/*.sh scripts/tests/*.sh scripts/tests/stubs/*
-	@echo "== ansible-lint ==" && cd ansible && ansible-lint
-	@echo "== ansible syntax-check ==" && cd ansible && ansible-playbook -i inventory/test.ini site.yml --syntax-check
+down:          ## stop the stack (named volumes, and so chat/queue/audit data, survive)
+	$(COMPOSE) down
 
-kickstart:
-	scripts/render-kickstart.sh
+build:
+	$(COMPOSE) build
 
-packer-validate: kickstart
-	cd packer && packer validate $(PACKER_VARS) .
+ps:
+	$(COMPOSE) ps
 
-packer-build: kickstart
-	cd packer && packer build $(PACKER_VARS) .
+logs:
+	$(COMPOSE) logs -f --tail=100
 
-vm-up:
-	scripts/tests/vm-up.sh $(VM_NAME) $(SSH_KEY)
+restart:
+	$(COMPOSE) restart
 
-vm-down:
-	scripts/tests/vm-down.sh $(VM_NAME)
+health:        ## quick reachability check of every published endpoint
+	@printf 'llama-server  ' ; curl -s -o /dev/null -w '%{http_code}\n' --max-time 5 http://127.0.0.1:8080/health
+	@printf 'llm-queue     ' ; curl -s -o /dev/null -w '%{http_code}\n' --max-time 5 http://127.0.0.1:8090/healthz
+	@printf 'audit-proxy   ' ; curl -s -o /dev/null -w '%{http_code}\n' --max-time 5 http://127.0.0.1:8001/healthz
+	@printf 'open-webui    ' ; curl -s -o /dev/null -w '%{http_code}\n' --max-time 5 http://127.0.0.1:3000/
 
-provision-test:
-	cd ansible && ansible-playbook -i inventory/test.ini site.yml
+test:          ## skill-library render tests (needs pytest; see README if unavailable)
+	python3 -m pytest skills/tests -q
 
-ova:
-	scripts/ova-postprocess.sh
+render:        ## regenerate skills/rendered/ for Open WebUI + opencode
+	python3 skills/render.py
+
+playbooks:     ## list available playbooks
+	@python3 scripts/dfir-hunt.py --list-playbooks
+
+hunt:          ## run one playbook: make hunt PLAYBOOK=host-baseline WINDOW=7d
+	python3 scripts/dfir-hunt.py --playbook $(PLAYBOOK) --window $(WINDOW) --verbose
+
+audit:         ## show the most recent AI tool calls: make audit N=50
+	@curl -s "http://127.0.0.1:8001/audit?limit=$(N)" | \
+	  python3 -c 'import json,sys; [print("%s  %-14s %-14s %s" % (c["ts"], c["server"], c["tool"], (c["arguments"] or "")[:80])) for c in json.load(sys.stdin)["calls"]]'

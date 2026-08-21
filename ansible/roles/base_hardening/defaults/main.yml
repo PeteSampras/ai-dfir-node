@@ -1,5 +1,0 @@
----
-ssh_password_auth_disabled: true
-firewalld_allowed_services:
-  - ssh
-  - https

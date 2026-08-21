@@ -1,6 +1,0 @@
----
-- name: Reload systemd and restart llama-server
-  ansible.builtin.systemd:
-    daemon_reload: true
-    name: llama-server.service
-    state: restarted

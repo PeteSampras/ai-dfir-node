@@ -1,6 +1,0 @@
-{% for server in chrony_servers | default(['2.rocky.pool.ntp.org iburst']) %}
-server {{ server }}
-{% endfor %}
-driftfile /var/lib/chrony/drift
-makestep 1.0 3
-rtcsync

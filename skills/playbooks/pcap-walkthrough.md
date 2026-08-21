@@ -1,5 +1,8 @@
 # Playbook: PCAP walkthrough (Arkime pull -> local dissection)
 
+> **Requires the full build.** This playbook depends on arkime-mcp and on-node
+> tshark, neither of which the minimal Docker stack provides.
+
 1. Use arkime-mcp `search_sessions` to locate the session(s) of interest by
    expression and time range.
 2. Use `get_spi_data`/`unique_values` to characterize the traffic before

@@ -1,75 +1,136 @@
-# AI DFIR Node
+# AI DFIR Node — minimal build
 
-A Rocky Linux 9 VM appliance for digital-forensics analysis: a local LLM
-(muse glimmer, served by llama.cpp) reachable through a web chat UI and a
-terminal/VS Code CLI agent (opencode), wired via MCP to your existing SOC
-Elasticsearch and Arkime, plus a fully offline MITRE ATT&CK reference. Every
-shell command, AI prompt, and tool call is logged locally for accountability.
+A single-host, offline stack for analysing an Elasticsearch SOC cluster with a
+local LLM: a web chat UI, a GPU-served model, the Elasticsearch MCP tools, a
+submit/poll job queue, an audited tool proxy, and a scriptable hunt agent.
 
-See `docs/specs/2026-08-20-ai-dfir-node-design.md` for the full design,
-`docs/plans/2026-08-20-ai-dfir-node.md` for the build plan, and
-**`docs/CONFIGURATION.md` for where to set the LLM/MCP/ES/Arkime config** —
-start there if you just need to point an existing node at something.
+This branch is the **minimal Docker build** only. The full appliance build
+(Packer image, Ansible provisioning, auditd/tlog hardening, Arkime and MITRE
+ATT&CK MCP servers, opencode CLI) lives on **`main`**.
 
-## Quick start — provisioning against a test VM
+## What runs
 
-`make provision-test` runs the full `ansible/site.yml` against whatever
-`inventory/test.ini` points at (test `group_vars`, all GPU/ES/Arkime
-features off by default) — this is what's actually been run and verified,
-repeatedly, this project's whole build. Two ways to get a target VM for it:
+| Service | Port | Purpose |
+|---|---|---|
+| `llama-server` | 127.0.0.1:8080 | llama.cpp, CUDA, serves the GGUF |
+| `open-webui` | 0.0.0.0:3000 | analyst chat UI |
+| `mcpo` | internal | spawns MCP servers, re-exposes them as OpenAPI |
+| `mcp-audit-proxy` | 127.0.0.1:8001 | **audit log of every AI tool call**, forwards to mcpo |
+| `llm-queue` | 127.0.0.1:8090 | submit/poll queue in front of the model |
 
-**Proxmox (recommended if you have it — this is the path that's actually
-been proven):** build a Rocky 9 qcow2 with `make packer-build`, `qm importdisk`
-it into a VM on your Proxmox host, point `inventory/test.ini` at its IP
-(`ansible_user=provision`, see `docs/CONFIGURATION.md`'s two-accounts note),
-then `make provision-test`.
+## Requirements
 
-**Local KVM, no Proxmox needed:**
-```bash
-make packer-build   # generates a per-host SSH test key + kickstart, builds a Rocky 9 qcow2 under local KVM
-make vm-up           # boots it via raw qemu, waits for SSH
-make provision-test  # runs the full Ansible site.yml against it
-make test             # runs every automated check this box can run
-make vm-down
-```
-This path works but is a disposable, unmanaged qemu process (no snapshots,
-no console, no clean lifecycle) — fine for a quick smoke test, but the
-Proxmox path is what this project's own real testing has used.
+Linux with Docker, a working NVIDIA GPU passthrough (`nvidia-container-toolkit`
++ `nvidia-smi` seeing the card), and a GGUF model file. Your user must be in the
+`docker` group. Nothing else — no Packer, no Ansible, no KVM.
 
-Nothing to prepare by hand first: `packer-build`/`packer-validate` both depend on the
-`kickstart` target, which generates `~/.ssh/ai_dfir_node_test_ed25519` (if it doesn't
-already exist) and renders `packer/http/ks.cfg` from `ks.cfg.tmpl` with that key baked
-in. `ks.cfg` itself is gitignored on purpose — it always carries a real key, so it must
-never be the thing that's committed (only `ks.cfg.tmpl`, with the `__SSH_PUBLIC_KEY__`
-placeholder, is tracked).
+**GPU sizing matters.** The model must fit in VRAM alongside its KV cache. A
+~18 GB GGUF at 32k context needs ~19 GB of a 24 GB card. If the model fails to
+load, lower `MODEL_CONTEXT_SIZE` before anything else.
 
-Already have the Rocky 9 minimal ISO downloaded? Point Packer at it instead of
-re-fetching (`iso_checksum=none` skips verification — trust the file, or pass
-your own `-var 'iso_checksum=sha256:<hash>'` instead):
+## Bring-up
 
 ```bash
-make packer-build PACKER_VARS="-var iso_url=/path/to/Rocky-9-x86_64-minimal.iso -var iso_checksum=none"
+cp .env.minimal.example .env.minimal     # then edit it
+mkdir -p models && cp /path/to/your.gguf models/
+make up
 ```
 
-`PACKER_VARS` passes through to both `packer-build` and `packer-validate` for
-any variable in `packer/variables.pkr.hcl` — e.g. `-var accelerator=tcg` on a
-host where `/dev/kvm` group membership needs a fresh login to take effect.
+`.env.minimal` needs:
 
-Already have the muse glimmer GGUF downloaded? Set `model_local_path` in
-`ansible/group_vars/ainode_production.yml` (see `all.yml.example`) and
-Ansible copies it straight to the target VM instead of fetching it from
-Hugging Face on the target.
+- `MODEL_FILE` — filename of the GGUF inside `./models/`
+- `MODEL_CONTEXT_SIZE` — must not exceed what the GGUF was converted for
+- `ES_URL`, `ES_API_KEY` — your Elasticsearch endpoint and key
+- `ES_SSL_SKIP_VERIFY=true` — **required** if Elasticsearch uses a self-signed
+  certificate (Security Onion's default). Without it the first query fails with
+  `unable to verify the first certificate`. For production prefer `ES_CA_CERT`,
+  which validates properly instead of disabling verification against a SOC
+  cluster.
 
-## Real deployment (ESXi + NVIDIA L4 + live ES/Arkime)
+Check it came up with `make health` (four `200`s), then open
+`http://<this-host>:3000`.
 
-See `docs/runbooks/esxi-import.md`, `docs/runbooks/gpu-passthrough.md`, and
-`docs/runbooks/manual-validation.md`.
+## Wiring the Elasticsearch tools into Open WebUI
 
-## Minimal Docker bring-up (no OVA/ESXi needed)
+Admin Panel → Settings → Tools → add an OpenAPI tool server:
 
-If you already have Rocky (or any Linux with Docker + working GPU passthrough) and just
-need the web UI, the model, the Elasticsearch MCP tool, and a submit/poll job queue —
-skip Packer/Ansible entirely and use `docker-compose.minimal.yml`. See the comment block
-at the top of that file for the exact steps. This is a fast-path subset, not a
-replacement for the full provisioned node: no auditd/tlog accountability logging, no
-firewalld/SELinux hardening, no Arkime/ATT&CK MCP, no opencode CLI.
+```
+http://mcp-audit-proxy:8001/elasticsearch
+```
+
+Use the **compose service name**, not `localhost` — inside the Open WebUI
+container `127.0.0.1` is itself, and the host IP will not work either because
+the proxy is bound to loopback. Set the model's **Function Calling** to
+**Native** in its advanced parameters; the stack supports real tool calls, and
+Native is markedly more reliable than the prompt-based fallback.
+
+Point tools at **8001 (the audit proxy), not 8000 (mcpo)**. Both work, but only
+8001 records the call.
+
+## Hunting
+
+```bash
+make playbooks                                   # list them
+make hunt PLAYBOOK=network-beaconing WINDOW=24h  # run one
+python3 scripts/dfir-hunt.py --prompt "Any RDP logons from outside the subnet today?"
+```
+
+`scripts/dfir-hunt.py` runs the tool-calling loop: it discovers what mcpo
+exposes, hands the schemas to the model, executes what the model calls, and
+feeds results back until it answers. Stdlib only, so it runs on a stock
+`python3` with nothing installed.
+
+Each run writes a timestamped `.md` and `.json` into `./hunts/` containing the
+answer **and the full tool transcript** — every query and its raw result. The
+skill library requires that analysts be shown the query behind a claim, so the
+transcript is part of the deliverable.
+
+Exit codes: `0` complete, `2` step budget exhausted with the model still
+working (the report is marked INCOMPLETE — re-run with a larger `--max-steps`).
+
+### On a schedule
+
+```bash
+sudo cp scripts/dfir-hunt.py /usr/local/bin/
+sudo cp scripts/systemd/ainode-hunt@.* /etc/systemd/system/
+sudo install -D scripts/systemd/hunt.env.example /etc/ainode/hunt.env
+sudo systemctl enable --now ainode-hunt@network-beaconing.timer
+```
+
+Cadence is a real trade-off: there is one GPU and `llama-server` is its only
+consumer, so a long scheduled hunt competes with analysts in the UI. Keep
+frequent hunts narrow and run broad ones off-hours.
+
+## Accountability
+
+Every MCP tool call is logged to the `ai_audit` table in the queue's sqlite
+database, recorded at the mcpo chokepoint so coverage is structural rather than
+per-caller. Failed calls are logged too, and the record is written before the
+response returns.
+
+```bash
+make audit N=50
+curl -s 'http://127.0.0.1:8001/audit?limit=20' | python3 -m json.tool
+```
+
+Captured per call: server, tool, verbatim arguments, HTTP status, result size,
+a bounded result digest, duration, and caller.
+
+**Scope:** this covers tool invocations. Prompts and completions live in Open
+WebUI's own database; shell activity needs the auditd/tlog layer from the full
+build. Do not treat this table as a complete record of analyst activity.
+
+## Skills
+
+`skills/` holds the system prompt and the playbooks, rendered by
+`python3 skills/render.py` (or `make render`) into `skills/rendered/` for both
+Open WebUI prompt import and opencode's `AGENTS.md`. Two playbooks are marked
+as requiring the full build.
+
+`make test` runs the render tests and needs `pytest`. If the host has no `pip`,
+run them in a container:
+
+```bash
+docker run --rm -v "$PWD:/w:Z" -w /w python:3.11-slim \
+  sh -c 'pip install -q pytest && python -m pytest skills/tests -q'
+```

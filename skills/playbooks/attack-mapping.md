@@ -1,5 +1,8 @@
 # Playbook: ATT&CK mapping with stated confidence
 
+> **Requires the full build.** This playbook depends on attack-mcp, which the
+> minimal Docker stack does not run. Kept here so the skill library stays whole.
+
 1. For each confirmed behavior, call attack-mcp `search_techniques` with the
    behavior's plain-language description first.
 2. Confirm the specific technique/sub-technique ID with `lookup_technique`

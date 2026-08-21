@@ -1,9 +1,0 @@
-{{ audit_root }}/**/*.log {{ audit_root }}/**/*.jsonl {
-    daily
-    rotate 90
-    compress
-    delaycompress
-    missingok
-    notifempty
-    create 0640 root root
-}

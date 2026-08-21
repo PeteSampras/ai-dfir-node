@@ -1,5 +1,0 @@
-skip_list:
-  - yaml[line-length]
-  - var-naming[no-role-prefix]  # small homelab project; role-prefixing every var adds noise without adding safety here
-warn_list:
-  - experimental
