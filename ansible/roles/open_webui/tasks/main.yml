@@ -61,3 +61,22 @@
 - name: Reload systemd so quadlet-generated services exist
   ansible.builtin.systemd:
     daemon_reload: true
+
+# Explicit, not handler-only -- same reasoning as mcp_servers: notify:
+# handlers only fire if the play reaches its end-of-play flush without a
+# fatal error anywhere first. Found live: a later, unrelated fatal error in
+# the same play (llama_server) aborted the host before handlers flushed, so
+# mcpo/open-webui were deployed but never actually started, and every
+# subsequent re-run saw the files as unchanged and never re-notified either
+# -- the gap was invisible on every retry, not just the first one.
+- name: Ensure mcpo is enabled and started
+  ansible.builtin.systemd:
+    name: mcpo.service
+    enabled: true
+    state: started
+
+- name: Ensure open-webui is enabled and started
+  ansible.builtin.systemd:
+    name: open-webui.service
+    enabled: true
+    state: started

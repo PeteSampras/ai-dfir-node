@@ -41,6 +41,20 @@
       ansible.builtin.systemd:
         daemon_reload: true
 
+    # Explicit, not handler-only -- same reasoning as mcp_servers/open_webui:
+    # notify: handlers only fire if the play reaches its end-of-play flush
+    # without a fatal error anywhere first, and this role's own handler was
+    # the one that DID hard-fail the whole play on every provision before
+    # ConditionPathExists was added. Safe on a GPU-less build VM: the
+    # ConditionPathExists=/dev/nvidia0 gate on the unit itself still makes
+    # this a clean skip (not a failure) there; this only guarantees a real
+    # start on real hardware, independent of handler-flush timing.
+    - name: Ensure llama-server is enabled and started (skips cleanly without a GPU, see ConditionPathExists)
+      ansible.builtin.systemd:
+        name: llama-server.service
+        enabled: true
+        state: started
+
 - name: Skip note when GPU not available
   ansible.builtin.debug:
     msg: "gpu_available=false — llama_server role skipped. Model serving cannot be verified on this box; see docs/runbooks/manual-validation.md."

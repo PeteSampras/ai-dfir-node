@@ -143,3 +143,33 @@
 - name: Reload systemd now so this run's verify step sees the new units
   ansible.builtin.systemd:
     daemon_reload: true
+
+# Explicit, not handler-only: notify: handlers only fire if their triggering
+# task reports changed AND the play reaches its end-of-play handler flush
+# without a fatal error anywhere first. Found live: a later, unrelated
+# fatal error in the SAME play (llama_server) aborted the host before
+# handlers flushed, so these quadlets were deployed but never actually
+# started -- and every subsequent run saw the files as unchanged and never
+# re-notified, so the gap was invisible on every re-run too. Explicit
+# enabled+started tasks guarantee these are running regardless of what
+# happens elsewhere in the play, the same way nginx is already handled in
+# the open_webui role.
+- name: Ensure attack-mcp is enabled and started
+  ansible.builtin.systemd:
+    name: attack-mcp.service
+    enabled: true
+    state: started
+
+- name: Ensure arkime-mcp is enabled and started
+  ansible.builtin.systemd:
+    name: arkime-mcp.service
+    enabled: true
+    state: started
+  when: arkime_configured
+
+- name: Ensure elasticsearch-mcp is enabled and started
+  ansible.builtin.systemd:
+    name: elasticsearch-mcp.service
+    enabled: true
+    state: started
+  when: elasticsearch_configured
