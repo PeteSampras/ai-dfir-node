@@ -48,8 +48,22 @@ make up
   which validates properly instead of disabling verification against a SOC
   cluster.
 
-Check it came up with `make health` (four `200`s), then open
-`http://<this-host>:3000`.
+Check it came up with `make health` (four `200`s), then seed the UI:
+
+```bash
+make seed SEED_EMAIL=you@example.com SEED_PASSWORD='...'
+```
+
+That creates the admin account, registers the audited tool server, and imports
+all 11 playbooks as slash commands. It is idempotent — safe after every
+`make up`. Then open `http://<this-host>:3000`.
+
+On a **fresh** volume the tool server is already registered by
+`TOOL_SERVER_CONNECTIONS` in compose before `make seed` runs. That variable is a
+PersistentConfig: it seeds the database on first boot only, and afterwards the
+stored value wins. So editing it does nothing to an instance that has already
+started — `make seed` writes through the API and does work on a running one.
+Prompts have no env-var path at all and only ever arrive through the API.
 
 ## Wiring the Elasticsearch tools into Open WebUI
 

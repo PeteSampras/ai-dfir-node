@@ -31,6 +31,9 @@ health:        ## quick reachability check of every published endpoint
 	@printf 'audit-proxy   ' ; curl -s -o /dev/null -w '%{http_code}\n' --max-time 5 http://127.0.0.1:8001/healthz
 	@printf 'open-webui    ' ; curl -s -o /dev/null -w '%{http_code}\n' --max-time 5 http://127.0.0.1:3000/
 
+seed:          ## create admin, register the tool server, import playbooks as /commands
+	@SEED_EMAIL="$(SEED_EMAIL)" SEED_PASSWORD="$(SEED_PASSWORD)" python3 scripts/seed-openwebui.py
+
 test:          ## skill-library render tests (needs pytest; see README if unavailable)
 	python3 -m pytest skills/tests -q
 
