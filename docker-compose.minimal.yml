@@ -140,6 +140,12 @@ services:
       ENABLE_SIGNUP: "False"
       OPENAI_API_BASE_URL: http://llama-server:8080/v1
       OPENAI_API_KEY: unused
+      # Registers the audited tool server so a fresh clone needs no GUI clicking.
+      # CAVEAT: this is a PersistentConfig. With ENABLE_PERSISTENT_CONFIG=True (the
+      # default) it seeds the database on FIRST boot only; afterwards the stored value
+      # wins and edits here are ignored. For an instance that has already started, use
+      # `make seed`, which writes through the API instead.
+      TOOL_SERVER_CONNECTIONS: '[{"url":"http://mcp-audit-proxy:8001/elasticsearch","path":"/openapi.json","type":"openapi","auth_type":"bearer","key":"","enabled":true,"info":{"id":"elasticsearch","name":"Elasticsearch (audited)"},"config":{"enable":true}}]'
     volumes:
       - open-webui-data:/app/backend/data
     ports:
