@@ -6,9 +6,24 @@ import pathlib
 
 
 def render_open_webui(system_prompt: str, playbooks: dict[str, str]) -> list[dict]:
+    """Open WebUI prompt-import entries.
+
+    Its PromptForm requires `command` and `name` (the field was renamed from
+    `title`), so an entry carrying only title/content is rejected on import.
+    `title` is still emitted for older builds that expect it -- PromptForm
+    ignores unknown keys, so carrying both is safe in either direction.
+
+    `command` is what the analyst types in chat, hence the leading slash:
+    /network-beaconing inserts that playbook.
+    """
     return [
-        {"title": title, "content": f"{system_prompt}\n\n---\n\n{body}"}
-        for title, body in playbooks.items()
+        {
+            "command": f"/{name}",
+            "name": name,
+            "title": name,
+            "content": f"{system_prompt}\n\n---\n\n{body}",
+        }
+        for name, body in playbooks.items()
     ]
 
 
