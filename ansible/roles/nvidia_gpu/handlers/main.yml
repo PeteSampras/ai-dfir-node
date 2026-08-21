@@ -1,0 +1,10 @@
+---
+- name: Reload systemd and enable nvidia-cdi-generate
+  ansible.builtin.systemd:
+    daemon_reload: true
+    name: nvidia-cdi-generate.service
+    enabled: true
+    state: started
+  # state: started only actually starts it if ConditionPathExists (/dev/nvidia0)
+  # is met -- on a build VM with no physical GPU this is a clean skip, not a
+  # failure, exactly as intended (see the role's tasks/main.yml comment).

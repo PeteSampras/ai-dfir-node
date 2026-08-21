@@ -1,6 +1,7 @@
 [Unit]
 Description=llama-server (muse glimmer, GPU-offloaded)
-After=network-online.target
+After=network-online.target nvidia-cdi-generate.service
+Requires=nvidia-cdi-generate.service
 
 [Container]
 Image=ghcr.io/ggml-org/llama.cpp:server-cuda

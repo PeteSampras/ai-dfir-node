@@ -1,0 +1,20 @@
+[Unit]
+Description=Generate the NVIDIA CDI spec for podman (needs the real GPU, so this runs at boot, not at provision time)
+# ConditionPathExists means this unit is skipped (not failed) on any boot
+# where /dev/nvidia0 doesn't exist yet -- e.g. the driver module hasn't
+# bound to a real GPU. Provisioning happens on an intermediate VM with no
+# physical GPU attached (the OVA build workflow), so CDI generation can
+# only ever succeed on the final, real-hardware boot, never during
+# ansible-playbook. Re-running every boot is intentional and cheap: it
+# keeps the spec correct across a driver update without needing a human
+# to remember to regenerate it.
+ConditionPathExists=/dev/nvidia0
+Before=llama-server.service
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+ExecStart=/usr/bin/nvidia-ctk cdi generate --output=/etc/cdi/nvidia.yaml
+
+[Install]
+WantedBy=multi-user.target

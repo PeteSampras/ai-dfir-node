@@ -14,6 +14,19 @@
         dest: /etc/yum.repos.d/nvidia-container-toolkit.repo
         mode: "0644"
 
+    # kmod-nvidia-open-dkms needs dkms >= 3.1.8, which the CUDA repo does not
+    # provide -- it's an EPEL package. Found live on the first real GPU-gated
+    # run this project has ever done (every test run has gpu_available:
+    # false and skips this whole role, so this was never exercised before).
+    - name: Enable EPEL (provides dkms, a hard dependency of kmod-nvidia-open-dkms)
+      ansible.builtin.dnf:
+        name: epel-release
+        state: present
+
+    - name: Enable the CRB repo (some EPEL packages' own dependencies need it on RHEL9 clones)
+      ansible.builtin.command: dnf config-manager --set-enabled crb
+      changed_when: true
+
     - name: Install open-kernel-module driver + toolkit
       ansible.builtin.dnf:
         name:
@@ -21,18 +34,35 @@
           - nvidia-container-toolkit
         state: present
 
-    - name: Generate CDI spec for podman
-      ansible.builtin.command: nvidia-ctk cdi generate --output=/etc/cdi/nvidia.yaml
-      changed_when: true
+    # CDI generation and nvidia-smi both need a real, bound GPU device --
+    # neither can run during provisioning. The build workflow provisions on
+    # an intermediate VM with no physical GPU (Packer -> Ansible -> OVA
+    # export -> only THEN does the GPU get attached, on import into ESXi),
+    # so this step is structurally guaranteed to have no GPU present at
+    # ansible-playbook time, every single time, not just on this VM. Found
+    # live on the first real GPU-gated production run: "failed to initialize
+    # NVML: ERROR_LIBRARY_NOT_FOUND" -- correct behavior, wrong phase.
+    # Deferred to a boot-time systemd oneshot (nvidia-cdi-generate.service,
+    # ConditionPathExists=/dev/nvidia0) that runs once the VM actually boots
+    # with the real GPU attached, and which llama-server.service now
+    # depends on (After=+Requires=) so it can never start against a stale
+    # or missing CDI spec.
+    - name: Deploy the boot-time CDI-spec-generation service (runs once the real GPU is actually present)
+      ansible.builtin.copy:
+        src: nvidia-cdi-generate.service
+        dest: /etc/systemd/system/nvidia-cdi-generate.service
+        mode: "0644"
+      notify: Reload systemd and enable nvidia-cdi-generate
 
-    - name: Verify GPU is visible (real hardware only)
-      ansible.builtin.command: nvidia-smi --query-gpu=name,memory.total --format=csv,noheader
-      register: nvidia_smi_out
-      changed_when: false
-
-    - name: Report detected GPU
+    - name: Report driver/toolkit install complete; live GPU verification deferred to boot
       ansible.builtin.debug:
-        msg: "{{ nvidia_smi_out.stdout }}"
+        msg: >-
+          kmod-nvidia-open-dkms and nvidia-container-toolkit installed. CDI
+          spec generation and nvidia-smi verification deferred to
+          nvidia-cdi-generate.service at boot (needs the real GPU, not
+          present during provisioning) -- verify with `nvidia-smi` and
+          `systemctl status nvidia-cdi-generate` after the VM boots on real
+          hardware. See docs/runbooks/gpu-passthrough.md.
 
 - name: Skip note when GPU not available
   ansible.builtin.debug:
