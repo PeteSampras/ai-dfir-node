@@ -94,6 +94,22 @@ services:
       - "127.0.0.1:8000:8000"
     restart: unless-stopped
 
+  # stdio -> streamable-HTTP bridge, so llama.cpp's built-in WebUI (which speaks MCP,
+  # not OpenAPI) has something to connect to. Internal only, deliberately: browsers must
+  # go through mcp-audit-proxy:8001/mcp, which parses the JSON-RPC and records every
+  # tools/call. Publishing this port would hand a browser an unaudited path to the SOC.
+  mcp-bridge:
+    build:
+      context: ./services/mcp-bridge
+      dockerfile: Containerfile
+    environment:
+      ES_URL: ${ES_URL}
+      ES_API_KEY: ${ES_API_KEY}
+      ES_SSL_SKIP_VERIFY: ${ES_SSL_SKIP_VERIFY:-false}
+    expose:
+      - "8080"
+    restart: unless-stopped
+
   # Audit-logging proxy in front of mcpo. Design spec section 5 requires every MCP
   # invocation to be logged (query text, target, result digest, timestamp) and nothing
   # else implements it: auditd sees execve, tlog sees terminal I/O, Open WebUI's chat DB
@@ -106,6 +122,7 @@ services:
       dockerfile: Dockerfile
     environment:
       MCPO_BASE_URL: http://mcpo:8000
+      MCP_BRIDGE_URL: http://mcp-bridge:8080/mcp
       AUDIT_DB_PATH: /data/queue.db
     volumes:
       - llm-queue-data:/data
@@ -113,6 +130,7 @@ services:
       - "127.0.0.1:8001:8001"
     depends_on:
       - mcpo
+      - mcp-bridge
     restart: unless-stopped
 
   open-webui:
