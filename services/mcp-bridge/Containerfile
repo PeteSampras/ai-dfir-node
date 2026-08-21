@@ -1,0 +1,30 @@
+# stdio -> streamable-HTTP bridge for the Elasticsearch MCP server.
+#
+# WHY: llama.cpp's built-in WebUI (b10548+) ships an MCP client that speaks
+# streamable HTTP. @elastic/mcp-server-elasticsearch@0.3.1 speaks only stdio.
+# mcpo solves the opposite problem (stdio -> OpenAPI, which is what Open WebUI
+# consumes), so neither end could talk to the other and the WebUI's MCP page had
+# nothing to connect to. supergateway bridges the gap.
+#
+# This listens on the compose network ONLY. Browsers must reach it through
+# mcp-audit-proxy, which parses the JSON-RPC and records every tools/call --
+# exposing this port directly would give a browser an unaudited path to the SOC
+# cluster, which is exactly what the audit layer exists to prevent.
+#
+# --stateful: the WebUI client negotiates a session (Mcp-Session-Id) and reuses
+# it across calls; stateless mode re-initialises per request and loses it.
+# CORS is deliberately NOT enabled here -- the browser never talks to this
+# service, so allowing cross-origin access would only widen the bypass.
+FROM docker.io/library/node:20-slim
+RUN npm install -g supergateway@3.4.0 @elastic/mcp-server-elasticsearch@0.3.1 \
+    && npm cache clean --force
+USER node
+EXPOSE 8080
+CMD ["supergateway", \
+     "--stdio", "mcp-server-elasticsearch stdio", \
+     "--outputTransport", "streamableHttp", \
+     "--streamableHttpPath", "/mcp", \
+     "--port", "8080", \
+     "--stateful", \
+     "--healthEndpoint", "/healthz", \
+     "--logLevel", "info"]

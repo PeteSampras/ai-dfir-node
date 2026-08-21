@@ -15,7 +15,8 @@ ATT&CK MCP servers, opencode CLI) lives on **`main`**.
 | `llama-server` | 127.0.0.1:8080 | llama.cpp, CUDA, serves the GGUF |
 | `open-webui` | 0.0.0.0:3000 | analyst chat UI |
 | `mcpo` | internal | spawns MCP servers, re-exposes them as OpenAPI |
-| `mcp-audit-proxy` | 127.0.0.1:8001 | **audit log of every AI tool call**, forwards to mcpo |
+| `mcp-audit-proxy` | 127.0.0.1:8001 | **audit log of every AI tool call**; OpenAPI at `/<server>`, MCP at `/mcp` |
+| `mcp-bridge` | internal | stdio→streamable-HTTP MCP, for llama.cpp's built-in WebUI |
 | `llm-queue` | 127.0.0.1:8090 | submit/poll queue in front of the model |
 
 ## Requirements
@@ -67,6 +68,25 @@ Native is markedly more reliable than the prompt-based fallback.
 Point tools at **8001 (the audit proxy), not 8000 (mcpo)**. Both work, but only
 8001 records the call.
 
+## Wiring tools into llama.cpp's built-in WebUI
+
+llama.cpp's own UI on `:8080` has an MCP client (`#/mcp-servers`). It speaks
+streamable-HTTP MCP, which is a different protocol from the OpenAPI that mcpo
+serves Open WebUI — so point it at the proxy's MCP endpoint:
+
+```
+http://localhost:8001/mcp
+```
+
+Use `localhost` here, not a service name: unlike Open WebUI, this client runs in
+**your browser**, so the URL is resolved on your machine. Both `:8080` and
+`:8001` are bound to loopback, so the browser must be on this host.
+
+`mcp-bridge` deliberately publishes no host port. The browser is meant to reach
+it only through the audit proxy, which parses the JSON-RPC and records every
+`tools/call`. Exposing the bridge directly would work — and would hand a browser
+an unaudited path to your SOC cluster.
+
 ## Hunting
 
 ```bash
@@ -114,7 +134,15 @@ curl -s 'http://127.0.0.1:8001/audit?limit=20' | python3 -m json.tool
 ```
 
 Captured per call: server, tool, verbatim arguments, HTTP status, result size,
-a bounded result digest, duration, and caller.
+a bounded result digest, duration, and caller (plus MCP session id where there
+is one).
+
+Both tool paths land in the same table: Open WebUI's OpenAPI calls via
+`/<server>/<tool>`, and llama.cpp WebUI's MCP calls via `/mcp`. Protocol
+handshake traffic (`initialize`, `tools/list`, notifications) is excluded so the
+trail stays readable; anything not on that allowlist is recorded, so a method
+introduced by a future MCP revision is audited by default rather than silently
+escaping.
 
 **Scope:** this covers tool invocations. Prompts and completions live in Open
 WebUI's own database; shell activity needs the auditd/tlog layer from the full
