@@ -4,9 +4,9 @@ Where to look to set up a node and change what it points at. This is the
 practical companion to `docs/specs/2026-08-20-ai-dfir-node-design.md`
 (the "why") — this doc is the "where."
 
-## The one file that matters most: `ansible/group_vars/production.yml`
+## The one file that matters most: `ansible/group_vars/ainode_production.yml`
 
-Copy `ansible/group_vars/all.yml.example` → `ansible/group_vars/production.yml`
+Copy `ansible/group_vars/all.yml.example` → `ansible/group_vars/ainode_production.yml`
 (gitignored — it holds real credentials) and fill in:
 
 ```yaml

@@ -1,5 +1,11 @@
 ---
-# Copy to group_vars/production.yml (gitignored) and fill in real values.
+# Copy to group_vars/ainode_production.yml (gitignored) and fill in real
+# values. MUST be named to match inventory/production.ini's group name
+# ([ainode_production]) exactly -- Ansible only auto-loads a group_vars
+# file whose name matches a real inventory group, and "production.yml"
+# (no ainode_ prefix) silently never loads for that group. Same bug class
+# already hit and fixed once for the test inventory (group_vars/test.yml
+# -> ainode_test.yml, matching [ainode_test]) -- don't reintroduce it here.
 gpu_available: true
 elasticsearch_configured: true
 arkime_configured: true

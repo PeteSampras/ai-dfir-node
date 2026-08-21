@@ -10,7 +10,7 @@
    - `pciPassthru.use64bitMMIO = TRUE`
    - `pciPassthru.64bitMMIOSizeGB = 64`
 5. Boot the VM, then inside the guest: re-run the `nvidia_gpu` Ansible role
-   (`ansible-playbook -i inventory/production.ini -e @group_vars/production.yml
+   (`ansible-playbook -i inventory/production.ini -e @group_vars/ainode_production.yml
    site.yml --tags nvidia_gpu`) — this is the same role code Task 4 of the
    plan wrote and verified the *skip path* for; this is where its *driver
    install path* runs for the first time, against real hardware.

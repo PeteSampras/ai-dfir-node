@@ -1,6 +1,6 @@
 # Secrets — never committed
 ansible/group_vars/all.yml
-ansible/group_vars/production.yml
+ansible/group_vars/ainode_production.yml
 ansible/inventory/production.ini
 *.pem
 *.key

@@ -8,7 +8,7 @@ run — see note below), and the NVIDIA L4 physically installed in the host.
    The test VM in this plan is 4 vCPU/8GB/40GB to prove the software stack
    cheaply; production is 12 vCPU/64GB/160GB thin (spec §3). Either:
    - Re-run `packer build` with `-var 'cpus=12' -var 'memory_mb=65536'
-     -var 'disk_size_mb=163840'`, provision with `group_vars/production.yml`
+     -var 'disk_size_mb=163840'`, provision with `group_vars/ainode_production.yml`
      (`gpu_available: true`, real ES/Arkime creds), then run
      `scripts/ova-postprocess.sh` against that disk, OR
    - Treat this plan's test OVA as a software-validation artifact only and

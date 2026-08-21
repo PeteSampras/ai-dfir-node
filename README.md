@@ -56,9 +56,9 @@ any variable in `packer/variables.pkr.hcl` — e.g. `-var accelerator=tcg` on a
 host where `/dev/kvm` group membership needs a fresh login to take effect.
 
 Already have the muse glimmer GGUF downloaded? Set `model_local_path` in
-`ansible/group_vars/production.yml` (see `all.yml.example`) and Ansible
-copies it straight to the target VM instead of fetching it from Hugging
-Face on the target.
+`ansible/group_vars/ainode_production.yml` (see `all.yml.example`) and
+Ansible copies it straight to the target VM instead of fetching it from
+Hugging Face on the target.
 
 ## Real deployment (ESXi + NVIDIA L4 + live ES/Arkime)
 
