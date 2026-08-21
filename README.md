@@ -65,11 +65,34 @@ Hugging Face on the target.
 See `docs/runbooks/esxi-import.md`, `docs/runbooks/gpu-passthrough.md`, and
 `docs/runbooks/manual-validation.md`.
 
+## Analyst tooling (both builds)
+
+`skills/` holds the system prompt and playbooks, rendered by `make render` into
+Open WebUI prompt-import JSON and opencode's `AGENTS.md`. `make seed` imports
+them into Open WebUI as `/commands` and registers the tool server, so a fresh
+deployment needs no GUI clicking.
+
+`make fields` samples real documents from your Elasticsearch and writes a
+per-dataset reference of the fields that are actually populated. Do this before
+seeding: the MCP server's only schema tool returns tens of KB for a single index
+and is truncated long before the useful fields appear, so without a generated
+reference the model guesses field names and writes queries that match nothing.
+The output is environment-specific and gitignored.
+
+`scripts/dfir-hunt.py` (`make hunt`) runs a playbook end to end -- tool loop,
+evidence transcript, exit 2 when the step budget is exhausted -- and pairs with
+`scripts/systemd/ainode-hunt@.timer` for scheduled hunts.
+
+Every MCP tool call is recorded by `services/mcp-audit-proxy` into the `ai_audit`
+table, satisfying the Tools row of the accountability matrix below. Point tools
+at the proxy, not mcpo directly, or calls go unrecorded.
+
 ## Minimal Docker bring-up (no OVA/ESXi needed)
 
 If you already have Rocky (or any Linux with Docker + working GPU passthrough) and just
 need the web UI, the model, the Elasticsearch MCP tool, and a submit/poll job queue —
 skip Packer/Ansible entirely and use `docker-compose.minimal.yml`. See the comment block
-at the top of that file for the exact steps. This is a fast-path subset, not a
+at the top of that file for the exact steps, and **[SETUP.md](SETUP.md) for the
+full step-by-step build-out including troubleshooting**. This is a fast-path subset, not a
 replacement for the full provisioned node: no auditd/tlog accountability logging, no
 firewalld/SELinux hardening, no Arkime/ATT&CK MCP, no opencode CLI.
