@@ -49,10 +49,17 @@
   # of MB; this only needs to catch a genuinely empty/zero-byte file.
   when: not attack_data_stat.stat.exists or attack_data_stat.stat.size < 500
 
+# force: true because podman_image's own idempotency check is "does an image
+# with this name:tag already exist locally", not "has the build context
+# changed" -- found live 2026-08-20 after a real source fix (attack_mcp/
+# copy showed changed, but the image build itself showed ok, so the fix
+# never actually landed in the running container). Podman's own build-layer
+# cache still makes this cheap when nothing changed.
 - name: Build attack-mcp image
   containers.podman.podman_image:
     name: localhost/attack-mcp:latest
     path: /opt/ainode/build/attack-mcp
+    force: true
     build:
       format: docker
 
@@ -86,6 +93,7 @@
       containers.podman.podman_image:
         name: localhost/arkime-mcp:latest
         path: /opt/ainode/build/arkime-mcp
+        force: true
         build:
           format: docker
 
@@ -115,6 +123,7 @@
       containers.podman.podman_image:
         name: localhost/elasticsearch-mcp:latest
         path: /opt/ainode/build/elasticsearch-mcp
+        force: true
         build:
           format: docker
 

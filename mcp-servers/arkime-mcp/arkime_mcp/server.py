@@ -12,7 +12,7 @@ from typing import Any
 import httpx
 from mcp.server.fastmcp import FastMCP
 
-mcp = FastMCP("arkime-mcp")
+mcp = FastMCP("arkime-mcp", host="0.0.0.0", port=int(os.environ.get("MCP_PORT", "9002")))
 AUDIT_LOG = os.environ.get("MCP_AUDIT_LOG", "/srv/ainode/audit/mcp-calls.jsonl")
 
 
@@ -97,7 +97,7 @@ def fetch_pcap_slice(session_id: str, dest_dir: str = "/srv/ainode/scratch") -> 
 def main() -> None:
     transport = os.environ.get("MCP_TRANSPORT", "stdio")
     if transport == "sse":
-        mcp.run(transport="sse", host="0.0.0.0", port=int(os.environ.get("MCP_PORT", "9002")))
+        mcp.run(transport="sse")
     else:
         mcp.run()
 

@@ -9,7 +9,7 @@ from mcp.server.fastmcp import FastMCP
 DATA_PATH = Path(__file__).parent.parent / "data" / "enterprise-attack.json"
 AUDIT_LOG = os.environ.get("MCP_AUDIT_LOG", "/srv/ainode/audit/mcp-calls.jsonl")
 
-mcp = FastMCP("attack-mcp")
+mcp = FastMCP("attack-mcp", host="0.0.0.0", port=int(os.environ.get("MCP_PORT", "9001")))
 
 
 def _audit(tool: str, args: dict, result_summary: str) -> None:
@@ -91,7 +91,7 @@ def search_techniques(keyword: str) -> list[dict]:
 def main() -> None:
     transport = os.environ.get("MCP_TRANSPORT", "stdio")
     if transport == "sse":
-        mcp.run(transport="sse", host="0.0.0.0", port=int(os.environ.get("MCP_PORT", "9001")))
+        mcp.run(transport="sse")
     else:
         mcp.run()
 
