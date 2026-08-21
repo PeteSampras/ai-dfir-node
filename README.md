@@ -6,18 +6,35 @@ terminal/VS Code CLI agent (opencode), wired via MCP to your existing SOC
 Elasticsearch and Arkime, plus a fully offline MITRE ATT&CK reference. Every
 shell command, AI prompt, and tool call is logged locally for accountability.
 
-See `docs/specs/2026-08-20-ai-dfir-node-design.md` for the full design and
-`docs/plans/2026-08-20-ai-dfir-node.md` for the build plan.
+See `docs/specs/2026-08-20-ai-dfir-node-design.md` for the full design,
+`docs/plans/2026-08-20-ai-dfir-node.md` for the build plan, and
+**`docs/CONFIGURATION.md` for where to set the LLM/MCP/ES/Arkime config** —
+start there if you just need to point an existing node at something.
 
-## Quick start (local test build — no ESXi/GPU required)
+## Quick start — provisioning against a test VM
 
+`make provision-test` runs the full `ansible/site.yml` against whatever
+`inventory/test.ini` points at (test `group_vars`, all GPU/ES/Arkime
+features off by default) — this is what's actually been run and verified,
+repeatedly, this project's whole build. Two ways to get a target VM for it:
+
+**Proxmox (recommended if you have it — this is the path that's actually
+been proven):** build a Rocky 9 qcow2 with `make packer-build`, `qm importdisk`
+it into a VM on your Proxmox host, point `inventory/test.ini` at its IP
+(`ansible_user=provision`, see `docs/CONFIGURATION.md`'s two-accounts note),
+then `make provision-test`.
+
+**Local KVM, no Proxmox needed:**
 ```bash
 make packer-build   # generates a per-host SSH test key + kickstart, builds a Rocky 9 qcow2 under local KVM
-make vm-up           # boots it, waits for SSH
-make provision-test  # runs the full Ansible site.yml against it (test group_vars)
+make vm-up           # boots it via raw qemu, waits for SSH
+make provision-test  # runs the full Ansible site.yml against it
 make test             # runs every automated check this box can run
 make vm-down
 ```
+This path works but is a disposable, unmanaged qemu process (no snapshots,
+no console, no clean lifecycle) — fine for a quick smoke test, but the
+Proxmox path is what this project's own real testing has used.
 
 Nothing to prepare by hand first: `packer-build`/`packer-validate` both depend on the
 `kickstart` target, which generates `~/.ssh/ai_dfir_node_test_ed25519` (if it doesn't
