@@ -1,0 +1,109 @@
+# Minimal bring-up stack -- basics only: web UI, the model (llama.cpp), the Elasticsearch
+# MCP tool, and a submit/poll job queue in front of the model.
+#
+# For when the OVA path isn't available (e.g. ESXi import blocked) and Docker + GPU
+# passthrough are already working directly on the host. Not a replacement for the full
+# ansible-provisioned node (docs/CONFIGURATION.md) -- no auditd/tlog accountability logging,
+# no firewalld/SELinux hardening, no Arkime/ATT&CK MCP, no opencode CLI. This is the fast
+# path to a working web UI + model + one MCP tool + a queue, nothing else.
+#
+# Usage:
+#   1. cp .env.minimal.example .env.minimal
+#   2. Edit .env.minimal: point MODEL_FILE at a GGUF you've placed in ./models/,
+#      set ES_URL/ES_API_KEY (or leave the elasticsearch-mcp block out if you don't have
+#      Elastic reachable from here yet -- see the note below).
+#   3. docker compose -f docker-compose.minimal.yml --env-file .env.minimal up -d --build
+#   4. Open WebUI: http://<this-host>:3000  |  Queue API: http://<this-host>:8090/docs
+#
+# GETTING A MODEL FILE HERE: llama.cpp (used below) needs a local GGUF. Two options --
+# neither needs Unsloth's own tooling, which is unnecessary for just running the model:
+#   (a) Already have the GGUF from ai-workstation? Copy/scp it into ./models/.
+#   (b) No file handy? Ollama is the fastest path to *something* running today -- pull
+#       any GGUF-based model by name (`ollama pull <model>`) and it handles fetch/serving
+#       itself. Swapping llama-server below for Ollama is a straight swap: same
+#       OpenAI-compatible /v1 API, same port convention -- change the image to
+#       `ollama/ollama:latest`, drop --model/--n-gpu-layers/--ctx-size (Ollama's own CLI/
+#       API takes it from there), and everything downstream (queue, Open WebUI) needs no
+#       changes since they only talk to the OpenAI-compatible endpoint, never llama.cpp
+#       specifically.
+
+services:
+  llama-server:
+    image: ghcr.io/ggml-org/llama.cpp:server-cuda
+    command: >
+      --model /models/${MODEL_FILE}
+      --host 0.0.0.0
+      --port 8080
+      --n-gpu-layers 999
+      --ctx-size ${MODEL_CONTEXT_SIZE:-32768}
+    volumes:
+      - ./models:/models:Z
+    ports:
+      - "127.0.0.1:8080:8080"
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
+    restart: unless-stopped
+
+  llm-queue:
+    build: ./services/llm-queue
+    environment:
+      LLAMA_BASE_URL: http://llama-server:8080/v1
+      LLAMA_MODEL: ${MODEL_FILE}
+      LLAMA_TIMEOUT_S: "900"
+      QUEUE_DB_PATH: /data/queue.db
+    volumes:
+      - llm-queue-data:/data
+    ports:
+      - "127.0.0.1:8090:8090"
+    depends_on:
+      - llama-server
+    restart: unless-stopped
+
+  # Comment out this whole block (and the "elasticsearch" entry in docker/mcpo-config.json)
+  # if Elastic isn't reachable from here yet -- everything else runs fine without it.
+  elasticsearch-mcp:
+    build:
+      context: ./mcp-servers/elasticsearch-mcp
+      dockerfile: Containerfile
+    environment:
+      ES_URL: ${ES_URL}
+      ES_API_KEY: ${ES_API_KEY}
+    expose:
+      - "9003"
+    restart: unless-stopped
+
+  mcpo:
+    image: ghcr.io/open-webui/mcpo:latest
+    command: ["--config", "/config.json", "--port", "8000"]
+    volumes:
+      - ./docker/mcpo-config.json:/config.json:ro
+    expose:
+      - "8000"
+    depends_on:
+      - elasticsearch-mcp
+    restart: unless-stopped
+
+  open-webui:
+    image: ghcr.io/open-webui/open-webui:main
+    environment:
+      WEBUI_AUTH: "True"
+      ENABLE_SIGNUP: "False"
+      OPENAI_API_BASE_URL: http://llama-server:8080/v1
+      OPENAI_API_KEY: unused
+    volumes:
+      - open-webui-data:/app/backend/data
+    ports:
+      - "3000:8080"
+    depends_on:
+      - llama-server
+      - mcpo
+    restart: unless-stopped
+
+volumes:
+  open-webui-data:
+  llm-queue-data:

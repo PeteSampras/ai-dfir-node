@@ -1,0 +1,5 @@
+{
+  "mcpServers": {
+    "elasticsearch": {"type": "sse", "url": "http://elasticsearch-mcp:9003/sse"}
+  }
+}

@@ -64,3 +64,12 @@ Hugging Face on the target.
 
 See `docs/runbooks/esxi-import.md`, `docs/runbooks/gpu-passthrough.md`, and
 `docs/runbooks/manual-validation.md`.
+
+## Minimal Docker bring-up (no OVA/ESXi needed)
+
+If you already have Rocky (or any Linux with Docker + working GPU passthrough) and just
+need the web UI, the model, the Elasticsearch MCP tool, and a submit/poll job queue —
+skip Packer/Ansible entirely and use `docker-compose.minimal.yml`. See the comment block
+at the top of that file for the exact steps. This is a fast-path subset, not a
+replacement for the full provisioned node: no auditd/tlog accountability logging, no
+firewalld/SELinux hardening, no Arkime/ATT&CK MCP, no opencode CLI.

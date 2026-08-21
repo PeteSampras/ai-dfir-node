@@ -2,8 +2,12 @@
 ansible/group_vars/all.yml
 ansible/group_vars/ainode_production.yml
 ansible/inventory/production.ini
+.env.minimal
 *.pem
 *.key
+
+# docker-compose.minimal.yml local state -- large model files, never committed
+models/
 
 # Build artifacts
 packer/output-*/
