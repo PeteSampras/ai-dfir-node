@@ -1,5 +1,16 @@
 [Unit]
 Description=llama-server (muse glimmer, GPU-offloaded)
+# Same reasoning as nvidia-cdi-generate.service: this can never actually run
+# during provisioning (intermediate build VM, no physical GPU) -- without
+# this condition, ansible's own restart handler hard-fails the whole
+# playbook run here every single time, on every future rebuild. Requires=
+# on nvidia-cdi-generate.service alone isn't enough: a Requires= dependency
+# on a condition-skipped unit does not itself skip THIS unit, so podman
+# still tries to start the container against a GPU device that doesn't
+# exist yet and fails for real. ConditionPathExists gives this unit the
+# same clean skip (not a failure) both at boot and when Ansible's handler
+# calls `systemctl restart` on it.
+ConditionPathExists=/dev/nvidia0
 After=network-online.target nvidia-cdi-generate.service
 Requires=nvidia-cdi-generate.service
 
