@@ -1,6 +1,6 @@
 # Minimal AI DFIR node -- Docker-only build.
 # The full Packer/Ansible appliance build lives on the `main` branch.
-.PHONY: up down build ps logs restart test render hunt playbooks audit health
+.PHONY: up down build ps logs restart test render hunt playbooks audit health seed fields
 
 COMPOSE := docker compose -f docker-compose.minimal.yml --env-file .env.minimal
 PLAYBOOK ?= network-beaconing
@@ -36,6 +36,9 @@ seed:          ## create admin, register the tool server, import playbooks as /c
 
 test:          ## skill-library render tests (needs pytest; see README if unavailable)
 	python3 -m pytest skills/tests -q
+
+fields:        ## regenerate the Elasticsearch field reference from the live cluster
+	@set -a && . ./.env.minimal && set +a && python3 scripts/gen-field-reference.py
 
 render:        ## regenerate skills/rendered/ for Open WebUI + opencode
 	python3 skills/render.py

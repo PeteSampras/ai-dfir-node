@@ -36,13 +36,28 @@ def render_agents_md(system_prompt: str, playbooks: dict[str, str]) -> str:
     return "\n".join(sections)
 
 
+def load_system_prompt(base: pathlib.Path) -> str:
+    """System prompt plus the generated field reference, when one exists.
+
+    The reference is environment-specific and produced by
+    scripts/gen-field-reference.py. Without it the model has no idea which fields
+    this cluster actually populates, and get_mappings is no substitute -- a single
+    index mapping is tens of KB and gets truncated to its alphabetical head.
+    """
+    prompt = (base / "system-prompt.md").read_text(encoding="utf-8")
+    ref = base / "reference" / "elastic-fields.md"
+    if ref.exists():
+        prompt += "\n\n---\n\n" + ref.read_text(encoding="utf-8")
+    return prompt
+
+
 def _load_markdown_dir(path: pathlib.Path) -> dict[str, str]:
     return {p.stem: p.read_text(encoding="utf-8") for p in sorted(path.glob("*.md"))}
 
 
 def main() -> None:
     base = pathlib.Path(__file__).parent
-    system_prompt = (base / "system-prompt.md").read_text(encoding="utf-8")
+    system_prompt = load_system_prompt(base)
     playbooks = _load_markdown_dir(base / "playbooks")
 
     out_dir = base / "rendered"

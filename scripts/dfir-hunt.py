@@ -104,7 +104,9 @@ def truncate(text):
 
 
 def build_task(args):
-    system = (SKILLS_DIR / "system-prompt.md").read_text(encoding="utf-8")
+    sys.path.insert(0, str(SKILLS_DIR.parent))
+    from skills import render as _render
+    system = _render.load_system_prompt(SKILLS_DIR)
     if args.playbook:
         pb = SKILLS_DIR / "playbooks" / ("%s.md" % args.playbook)
         if not pb.exists():

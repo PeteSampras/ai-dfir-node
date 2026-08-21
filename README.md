@@ -19,6 +19,8 @@ ATT&CK MCP servers, opencode CLI) lives on **`main`**.
 | `mcp-bridge` | internal | stdio→streamable-HTTP MCP, for llama.cpp's built-in WebUI |
 | `llm-queue` | 127.0.0.1:8090 | submit/poll queue in front of the model |
 
+**Full step-by-step build-out, including troubleshooting: [SETUP.md](SETUP.md).**
+
 ## Requirements
 
 Linux with Docker, a working NVIDIA GPU passthrough (`nvidia-container-toolkit`
@@ -48,11 +50,18 @@ make up
   which validates properly instead of disabling verification against a SOC
   cluster.
 
-Check it came up with `make health` (four `200`s), then seed the UI:
+Check it came up with `make health` (four `200`s), then build the field
+reference and seed the UI:
 
 ```bash
+make fields                                              # sample real fields from your cluster
 make seed SEED_EMAIL=you@example.com SEED_PASSWORD='...'
 ```
+
+`make fields` matters more than it looks. The MCP server's only schema tool
+returns ~44 KB for one index, which truncates to `agent.*`/`container.*`
+boilerplate — so without a generated reference the model guesses field names and
+writes queries that match nothing. See [SETUP.md](SETUP.md) §6.
 
 That creates the admin account, registers the audited tool server, and imports
 all 11 playbooks as slash commands. It is idempotent — safe after every
