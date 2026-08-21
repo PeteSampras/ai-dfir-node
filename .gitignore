@@ -35,3 +35,7 @@ __pycache__/
 
 # Hunt reports written by scripts/dfir-hunt.py (audit artefacts, not source).
 hunts/
+
+# Generated from the live cluster: contains this environment's index and field
+# names. Regenerate with `make fields` rather than committing it.
+skills/reference/
