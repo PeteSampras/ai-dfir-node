@@ -1,5 +1,8 @@
 {
   "mcpServers": {
-    "elasticsearch": {"type": "streamable-http", "url": "http://elasticsearch-mcp:8080/mcp"}
+    "elasticsearch": {
+      "command": "mcp-server-elasticsearch",
+      "args": ["stdio"]
+    }
   }
 }

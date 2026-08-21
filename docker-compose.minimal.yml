@@ -10,8 +10,9 @@
 # Usage:
 #   1. cp .env.minimal.example .env.minimal
 #   2. Edit .env.minimal: point MODEL_FILE at a GGUF you've placed in ./models/,
-#      set ES_URL/ES_API_KEY (or leave the elasticsearch-mcp block out if you don't have
-#      Elastic reachable from here yet -- see the note below).
+#      set ES_URL/ES_API_KEY, and set ES_SSL_SKIP_VERIFY=true if Elastic uses a self-signed
+#      cert (or drop the "elasticsearch" entry from docker/mcpo-config.json if you don't
+#      have Elastic reachable from here yet -- see the note below).
 #   3. docker compose -f docker-compose.minimal.yml --env-file .env.minimal up -d --build
 #   4. Open WebUI: http://<this-host>:3000  |  Queue API: http://<this-host>:8090/docs
 #
@@ -64,28 +65,54 @@ services:
       - llama-server
     restart: unless-stopped
 
-  # Comment out this whole block (and the "elasticsearch" entry in docker/mcpo-config.json)
-  # if Elastic isn't reachable from here yet -- everything else runs fine without it.
-  elasticsearch-mcp:
+  # The Elasticsearch MCP server runs INSIDE mcpo, as a stdio subprocess -- it is not a
+  # service of its own. See docker/mcpo/Containerfile for why: the package implements only
+  # stdio, so as a standalone container it exits 0 on stdin EOF in a silent crash-loop.
+  # To run without Elastic, drop the "elasticsearch" entry from docker/mcpo-config.json;
+  # everything else runs fine without it.
+  mcpo:
     build:
-      context: ./mcp-servers/elasticsearch-mcp
+      context: ./docker/mcpo
       dockerfile: Containerfile
+    command: ["--config", "/config.json", "--port", "8000"]
+    # mcpo merges its own environment into every server it spawns
+    # (env={**os.environ, **cfg["env"]}), so these reach the stdio child without
+    # ES_API_KEY ever being written into the tracked config file.
+    # ES_SSL_SKIP_VERIFY is REQUIRED against Security Onion's self-signed cert: without it
+    # the first Elastic call fails with "unable to verify the first certificate". For
+    # production prefer ES_CA_CERT -- that cert carries a correct SAN for the ES host, so
+    # pinning it validates properly instead of disabling verification against a SOC cluster.
     environment:
       ES_URL: ${ES_URL}
       ES_API_KEY: ${ES_API_KEY}
-    expose:
-      - "8080"
-    restart: unless-stopped
-
-  mcpo:
-    image: ghcr.io/open-webui/mcpo:latest
-    command: ["--config", "/config.json", "--port", "8000"]
+      ES_SSL_SKIP_VERIFY: ${ES_SSL_SKIP_VERIFY:-false}
     volumes:
       - ./docker/mcpo-config.json:/config.json:ro
-    expose:
-      - "8000"
+    # Bound to loopback so scripts/dfir-hunt.py can reach the tools from the host.
+    # mcpo runs without --api-key, so this must never be exposed beyond 127.0.0.1.
+    ports:
+      - "127.0.0.1:8000:8000"
+    restart: unless-stopped
+
+  # Audit-logging proxy in front of mcpo. Design spec section 5 requires every MCP
+  # invocation to be logged (query text, target, result digest, timestamp) and nothing
+  # else implements it: auditd sees execve, tlog sees terminal I/O, Open WebUI's chat DB
+  # sees prompts -- none of them see a tool call. Point Open WebUI's tool server and
+  # scripts/dfir-hunt.py at THIS (8001), not mcpo directly, or calls go unrecorded.
+  # Shares the queue's sqlite volume: the trail lands in queue.db, table ai_audit.
+  mcp-audit-proxy:
+    build:
+      context: ./services/mcp-audit-proxy
+      dockerfile: Dockerfile
+    environment:
+      MCPO_BASE_URL: http://mcpo:8000
+      AUDIT_DB_PATH: /data/queue.db
+    volumes:
+      - llm-queue-data:/data
+    ports:
+      - "127.0.0.1:8001:8001"
     depends_on:
-      - elasticsearch-mcp
+      - mcpo
     restart: unless-stopped
 
   open-webui:

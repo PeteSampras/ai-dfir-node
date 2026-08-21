@@ -32,3 +32,6 @@ __pycache__/
 
 # Local debug scratch (VNC/serial-console helper scripts, not deliverables)
 .scratch/
+
+# Hunt reports written by scripts/dfir-hunt.py (audit artefacts, not source).
+hunts/

@@ -1,0 +1,23 @@
+# mcpo, bundled with the Elasticsearch MCP server it spawns over stdio.
+#
+# WHY THIS IMAGE EXISTS: @elastic/mcp-server-elasticsearch@0.3.1 implements exactly one
+# transport -- stdio. dist/index.js does `const transport = new StdioServerTransport()`
+# unconditionally, above the source comment "(http will come later)". There is no HTTP
+# listener in the package at all. Run as its own long-lived container it therefore reads
+# EOF on a closed stdin and exits 0 within seconds, with no error output -- a silent
+# crash-loop that looks like a config problem but cannot be configured away. Passing an
+# "http" argument does nothing: the argv check that would reject it only runs when
+# RUNNING_IN_CONTAINER=true, so the value is parsed and ignored.
+#
+# A stdio MCP server is not a service; it is a subprocess. mcpo's entire purpose is to
+# spawn stdio MCP servers and re-expose them as OpenAPI for Open WebUI, so the server
+# belongs inside this image, launched by mcpo -- not deployed beside it.
+#
+# The mcpo image ships /usr/bin/node but no npm, so install in a node stage and copy the
+# result across. Pinned to 0.3.1: the version whose stdio-only behaviour is verified here.
+FROM docker.io/library/node:20-slim AS esmcp
+RUN npm install -g --prefix /opt/esmcp @elastic/mcp-server-elasticsearch@0.3.1
+
+FROM ghcr.io/open-webui/mcpo:latest
+COPY --from=esmcp /opt/esmcp /opt/esmcp
+ENV PATH="/opt/esmcp/bin:${PATH}"

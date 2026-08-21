@@ -1,0 +1,19 @@
+# Default cadence: hourly, off the top of the hour. Override per instance with a
+# drop-in rather than editing this file:
+#   systemctl edit ainode-hunt@network-beaconing.timer
+#
+# Cadence is a real trade-off on this node: there is ONE GPU for the whole estate and
+# llama-server is its only consumer, so a long hunt competes with interactive analysts
+# in Open WebUI. Prefer off-hours for broad playbooks (host-baseline), and keep the
+# frequent ones narrow.
+[Unit]
+Description=Run ainode-hunt@%i on a schedule
+
+[Timer]
+OnCalendar=*-*-* *:17:00
+RandomizedDelaySec=300
+Persistent=true
+Unit=ainode-hunt@%i.service
+
+[Install]
+WantedBy=timers.target

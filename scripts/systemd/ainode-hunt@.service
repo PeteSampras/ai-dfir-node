@@ -1,0 +1,30 @@
+# Scheduled DFIR hunt. Instanced by playbook name, so one unit file serves all of
+# them:  systemctl enable --now ainode-hunt@network-beaconing.timer
+#
+# Not folded into the ansible ops_scripts role yet -- that is the full-build path and
+# is deliberately untouched until the minimal stack is signed off. When it moves, it
+# belongs beside ainode-backup.{service,timer}.j2 with the same EnvironmentFile wiring.
+[Unit]
+Description=AI DFIR scheduled hunt (%i)
+# The model must actually be up; a hunt against a dead llama-server just burns a slot
+# and writes an empty report.
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+EnvironmentFile=-/etc/ainode/hunt.env
+Environment=HUNT_OUT=/srv/ainode/audit/hunts
+Environment=LLAMA_BASE_URL=http://127.0.0.1:8080/v1
+# 8001 is the audit proxy, NOT mcpo on 8000. Pointing this at mcpo directly means the
+# scheduled agent's queries against the SOC cluster leave no audit record.
+Environment=MCPO_BASE_URL=http://127.0.0.1:8001
+Environment=SKILLS_DIR=/opt/ainode/skills
+ExecStart=/usr/local/bin/dfir-hunt.py --playbook %i --window ${HUNT_WINDOW}
+# dfir-hunt.py exits 2 when it hit the step budget with the model still working. That is
+# an incomplete hunt, not a failure to run -- surface it without flapping the unit.
+SuccessExitStatus=0 2
+Nice=10
+
+[Install]
+WantedBy=multi-user.target
