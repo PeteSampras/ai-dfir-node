@@ -3,6 +3,15 @@ USER 0
 RUN npm install -g @elastic/mcp-server-elasticsearch@latest && \
     npm cache clean --force
 USER 1001
-ENV MCP_TRANSPORT=sse MCP_PORT=9003
-EXPOSE 9003
+# CORRECTED 2026-08-21: MCP_TRANSPORT/MCP_PORT are NOT real settings for this package --
+# confirmed live (silent exit-0 crash-loop, zero listener, zero error output) and against
+# the upstream README. Transport is chosen by a CLI ARGUMENT ("stdio" or "http"), not an
+# env var; with neither ENTRYPOINT nor a command supplying one, the binary parsed argv,
+# had nothing to do, and exited clean -- which is why every log capture showed only the
+# bundled OTel telemetry noise and never a real startup or connection error. "http" mode
+# is Streamable HTTP (SSE is explicitly deprecated upstream) on port 8080, path /mcp, with
+# a health check at /ping. This package is itself marked deprecated upstream (superseded
+# by Elastic Agent Builder's MCP endpoint) -- fine for now, worth revisiting later.
+EXPOSE 8080
 ENTRYPOINT ["mcp-server-elasticsearch"]
+CMD ["http"]

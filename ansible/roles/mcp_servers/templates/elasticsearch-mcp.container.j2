@@ -4,7 +4,7 @@ After=network-online.target
 
 [Container]
 Image=localhost/elasticsearch-mcp:latest
-PublishPort=127.0.0.1:9003:9003
+PublishPort=127.0.0.1:8080:8080
 EnvironmentFile=/etc/ainode/elasticsearch-mcp.env
 
 [Service]

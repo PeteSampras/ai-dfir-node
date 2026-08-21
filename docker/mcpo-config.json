@@ -1,5 +1,5 @@
 {
   "mcpServers": {
-    "elasticsearch": {"type": "sse", "url": "http://elasticsearch-mcp:9003/sse"}
+    "elasticsearch": {"type": "streamable-http", "url": "http://elasticsearch-mcp:8080/mcp"}
   }
 }

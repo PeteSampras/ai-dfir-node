@@ -5,7 +5,7 @@
     ,"arkime": {"type": "sse", "url": "http://127.0.0.1:9002/sse"}
 {% endif %}
 {% if elasticsearch_configured %}
-    ,"elasticsearch": {"type": "sse", "url": "http://127.0.0.1:9003/sse"}
+    ,"elasticsearch": {"type": "streamable-http", "url": "http://127.0.0.1:8080/mcp"}
 {% endif %}
   }
 }

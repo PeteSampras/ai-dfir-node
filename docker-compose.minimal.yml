@@ -74,7 +74,7 @@ services:
       ES_URL: ${ES_URL}
       ES_API_KEY: ${ES_API_KEY}
     expose:
-      - "9003"
+      - "8080"
     restart: unless-stopped
 
   mcpo:
